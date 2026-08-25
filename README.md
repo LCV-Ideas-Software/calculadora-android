@@ -1,5 +1,7 @@
 # Calculadora Android
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/14229/badge)](https://www.bestpractices.dev/projects/14229)
+
 Repositório público de entrega do aplicativo Android da Calculadora da
 LCV Ideas & Software.
 
