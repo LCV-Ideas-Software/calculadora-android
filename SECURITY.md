@@ -10,7 +10,7 @@ or production runtime.
 ## Reporting a vulnerability
 
 Prefer GitHub's private vulnerability reporting for this repository. If that
-surface is unavailable, report privately to `lcv@lcv.dev`.
+surface is unavailable, report privately to `security@lcv.dev`.
 
 Do not disclose a vulnerability, credential, signing artifact, personal datum,
 or unpublished operational detail in a public Issue, Discussion, pull request,
