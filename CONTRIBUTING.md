@@ -1,7 +1,8 @@
 # Contributing
 
-This public repository delivers the LCV Calculadora Android application.
-Contributions must preserve its explicit privacy and product boundaries.
+This public repository delivers the LCV Ideas & Software Calculadora Android
+application. Contributions must preserve its explicit privacy and product
+boundaries.
 
 ## Tracking boundary
 
