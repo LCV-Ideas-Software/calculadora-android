@@ -17,22 +17,12 @@ Action dependencies.
 | `actions/configure-pages` | v6.0.0 | `45bfe0192ca1faeb007ade9deae92b16b8254a0d` | [MIT](https://github.com/actions/configure-pages/blob/45bfe0192ca1faeb007ade9deae92b16b8254a0d/LICENSE) | Configure the Pages build |
 | `actions/upload-pages-artifact` | v5.0.0 | `fc324d3547104276b827a68afc52ff2a11cc49c9` | [MIT](https://github.com/actions/upload-pages-artifact/blob/fc324d3547104276b827a68afc52ff2a11cc49c9/LICENSE) | Upload the sanitized `site/` artifact |
 | `actions/deploy-pages` | v5.0.0 | `cd2ce8fcbc39b97be8ca5fce6e763baed58fa128` | [MIT](https://github.com/actions/deploy-pages/blob/cd2ce8fcbc39b97be8ca5fce6e763baed58fa128/LICENSE) | Deploy the trusted Pages artifact |
-| `linear/linear-release-action` | v0.16.0 | `0a25abab892a91062ebf42260dbb2ce6277aa205` | [MIT](https://github.com/linear/linear-release-action/blob/0a25abab892a91062ebf42260dbb2ce6277aa205/LICENSE) | Create a release in the corresponding Linear pipeline |
+| `linear/linear-release-action` | v0.17.1 | `3f31fcf14c110cc53579fcc3575a26d469c413b4` | [MIT](https://github.com/linear/linear-release-action/blob/3f31fcf14c110cc53579fcc3575a26d469c413b4/LICENSE) | Create a release in the corresponding Linear pipeline |
 
 `github/codeql-action` is MIT-licensed. The CodeQL CLI bundle selected by the
 pinned Action is separately governed by the immutable
 [GitHub CodeQL Terms and Conditions](https://github.com/github/codeql-cli-binaries/blob/0d65148c254764ec294892a35e644accd5677ed5/LICENSE.md)
 and the Enterprise GitHub Code Security entitlement.
-
-## Accepted upstream exception
-
-The official Linear Action and CLI version are pinned, but its installer
-currently downloads the selected CLI without a checksum, signature, or
-artifact-attestation gate. The gap is tracked in
-[`linear/linear-release-action#59`](https://github.com/linear/linear-release-action/issues/59).
-The access key remains confined to the dedicated
-`linear-release` environment. Functional synchronization is fail-closed: a
-failed release sync fails its workflow rather than reporting a false success.
 
 ## Repository license
 
