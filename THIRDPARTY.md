@@ -1,10 +1,9 @@
 # Third-party inventory
 
 There is no Android or production-runtime dependency at bootstrap. The table
-below is the complete direct automation dependency inventory. Every direct
-`uses:` reference is fixed to the listed full commit SHA. The machine-generated
-`.github/workflows/actions.lock` is authoritative for both direct and transitive
-Action dependencies.
+below records the direct automation dependencies. The current immutable pins
+are the full commit SHAs in each workflow's `uses:` references. Transitive
+Action dependencies remain defined by those pinned upstream actions.
 
 | Component | Version | Commit SHA | License | Purpose |
 | --- | --- | --- | --- | --- |
