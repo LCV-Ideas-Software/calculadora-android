@@ -59,9 +59,8 @@ convertidos em massa.
 - Linear Release registra cada mudança bem-sucedida em `main` no pipeline
   contínuo correspondente.
 
-Todas as Actions externas usam SHA completo imutável e aparecem em
-[`THIRDPARTY.md`](THIRDPARTY.md) e no inventário verificável
-`.github/workflows/actions.lock`.
+Todas as Actions externas usam SHA completo imutável diretamente nos workflows.
+O inventário de terceiros está em [`THIRDPARTY.md`](THIRDPARTY.md).
 
 ## Contribuição e segurança
 

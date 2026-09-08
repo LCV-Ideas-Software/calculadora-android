@@ -17,5 +17,10 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Security
 
-- Pinned every external GitHub Action to an immutable full commit SHA and
-  generated `.github/workflows/actions.lock`.
+- Pinned every external GitHub Action to an immutable full commit SHA.
+
+### Fixed
+
+- Removed the obsolete Actions dependency lock and its workflow onboarding
+  markers to restore workflow startup after Dependabot updates. Direct SHA
+  pins, workflow behavior and repository security settings are unchanged.
