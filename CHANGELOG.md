@@ -4,6 +4,23 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- Align repository-local governance with the native fleet baseline, without
+  adding an Android scaffold, production dependencies or a fabricated build.
+- Preserve native CodeQL Default setup and Code Quality; retire the disabled
+  advanced CodeQL workflow and obsolete merge-queue consumers.
+- Schedule Actions-only Dependabot updates weekly with a minor/patch group,
+  separate majors, automatic rebasing and the existing selective cooldown.
+- Enable exact-head GitHub native Dependabot auto-merge, subject to required
+  checks and rules; remove documentation of the retired central controller.
+- Cover retargeted and ready pull requests in Pages, Dependency Review and
+  Zizmor, and keep Scorecard artifacts and SARIF repository-local.
+- Align the official Linear CLI with action v0.17.2 while preserving the
+  push-to-main continuous commit-history pipeline and its pending-run queue.
+- Add repository-local inbound rights documentation without changing the
+  existing AGPL license, copyright notice or product privacy decisions.
+
 ### Added
 
 - Established the public repository baseline without inventing an Android or

@@ -6,12 +6,16 @@ on:
       - main
   pull_request:
     branches:
-      - main
-  merge_group:
+      - "**"
+    # Include retargeted and ready pull requests in this required check.
     types:
-      - checks_requested
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - edited
   schedule:
-    - cron: "19 5 * * 1"
+    - cron: "43 5 * * 1"
   workflow_dispatch:
 
 permissions: {}
@@ -27,6 +31,8 @@ jobs:
     timeout-minutes: 15
     permissions:
       security-events: write # Upload Zizmor SARIF to code scanning.
+      contents: read # Check out the repository.
+      actions: read # Read workflow metadata for the upload.
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
