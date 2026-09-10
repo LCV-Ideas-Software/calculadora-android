@@ -52,10 +52,13 @@ convertidos em massa.
 - Zizmor audita a segurança dos workflows e publica SARIF.
 - OpenSSF Scorecard observa a postura de supply chain do branch principal e
   mantém o SARIF no próprio repositório; não é gate por pull request.
-- Dependabot verifica GitHub Actions semanalmente, às segundas-feiras, às
-  06:00 em São Paulo, com grupo de atualizações minor/patch e majors separados.
+- Dependabot verifica GitHub Actions todos os dias, inclusive fins de semana,
+  às 05h no fuso fixo UTC−03:00, com grupo de versões minor/patch e majors separados.
   O cooldown de sete dias preserva as exceções para `actions/*` e `github/*`.
   Gradle será incluído somente quando existir um projeto Gradle real.
+  Atualizações de segurança têm um grupo separado e não aguardam o agendamento
+  de versões nem o cooldown. Se um membro falhar, diagnosticar e ajustar o
+  agrupamento nativo para liberar as demais correções com os checks exigidos.
 - O workflow local habilita o auto-merge squash nativo para os pull requests
   do Dependabot deste repositório, vinculado ao SHA exato e condicionado aos
   checks e regras aplicáveis. Não existe merge queue ou controlador central.

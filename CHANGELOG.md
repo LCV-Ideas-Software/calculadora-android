@@ -13,8 +13,10 @@ All material changes to `calculadora-android` are recorded here.
   adding an Android scaffold, production dependencies or a fabricated build.
 - Preserve native CodeQL Default setup and Code Quality; retire the disabled
   advanced CodeQL workflow and obsolete merge-queue consumers.
-- Schedule Actions-only Dependabot updates weekly with a minor/patch group,
+- Schedule Actions-only Dependabot updates every day, including weekends,
+  at 05:00 in fixed UTC-03:00, with a minor/patch group,
   separate majors, automatic rebasing and the existing selective cooldown.
+- Group security updates separately from version updates.
 - Enable exact-head GitHub native Dependabot auto-merge, subject to required
   checks and rules; remove documentation of the retired central controller.
 - Cover retargeted and ready pull requests in Pages, Dependency Review and
