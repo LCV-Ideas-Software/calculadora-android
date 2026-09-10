@@ -6,6 +6,9 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Changed
 
+- Update the official CodeQL Action to v4.38.0 and Zizmor Action to v0.6.4,
+  retaining full commit pins and aligning the current third-party inventory.
+
 - Align repository-local governance with the native fleet baseline, without
   adding an Android scaffold, production dependencies or a fabricated build.
 - Preserve native CodeQL Default setup and Code Quality; retire the disabled
