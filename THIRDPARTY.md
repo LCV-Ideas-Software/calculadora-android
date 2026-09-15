@@ -16,7 +16,7 @@ Action dependencies remain defined by those pinned upstream actions.
 | `actions/configure-pages`          | v6.0.0  | `45bfe0192ca1faeb007ade9deae92b16b8254a0d` | [MIT](https://github.com/actions/configure-pages/blob/45bfe0192ca1faeb007ade9deae92b16b8254a0d/LICENSE)          | Configure the Pages build                                         |
 | `actions/upload-pages-artifact`    | v5.0.0  | `fc324d3547104276b827a68afc52ff2a11cc49c9` | [MIT](https://github.com/actions/upload-pages-artifact/blob/fc324d3547104276b827a68afc52ff2a11cc49c9/LICENSE)    | Upload the sanitized `site/` artifact                             |
 | `actions/deploy-pages`             | v5.0.1  | `368f82528645a54fb793d4d04e342629a3f51346` | [MIT](https://github.com/actions/deploy-pages/blob/368f82528645a54fb793d4d04e342629a3f51346/LICENSE)             | Deploy the trusted Pages artifact                                 |
-| `linear/linear-release-action`     | v0.17.2 | `53ad0f863963e7f8e270fba18426bbb55ef55384` | [MIT](https://github.com/linear/linear-release-action/blob/53ad0f863963e7f8e270fba18426bbb55ef55384/LICENSE)     | Create a release in the corresponding Linear pipeline             |
+| `linear/linear-release-action`     | v0.18.0 | `d4af10092984f9bc6d5efa075b242bdf01333463` | [MIT](https://github.com/linear/linear-release-action/blob/d4af10092984f9bc6d5efa075b242bdf01333463/LICENSE)     | Create a release in the corresponding Linear pipeline             |
 
 `github/codeql-action` is MIT-licensed. Native CodeQL Default setup manages the
 analysis and its CLI bundle; this repository pins the Action only for SARIF
@@ -24,7 +24,7 @@ upload. The CodeQL CLI is separately governed by the immutable
 [GitHub CodeQL Terms and Conditions](https://github.com/github/codeql-cli-binaries/blob/0d65148c254764ec294892a35e644accd5677ed5/LICENSE.md)
 and the Enterprise GitHub Code Security entitlement.
 
-The official Linear Release action selects CLI v0.17.2 explicitly. The local
+The official Linear Release action selects CLI v0.18.0 explicitly. The local
 Dependabot workflow uses the GitHub-hosted runner's official `gh` CLI to enable
 GitHub native auto-merge; it does not add a custom application or controller.
 

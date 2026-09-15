@@ -21,7 +21,7 @@ All material changes to `calculadora-android` are recorded here.
   checks and rules; remove documentation of the retired central controller.
 - Cover retargeted and ready pull requests in Pages, Dependency Review and
   Zizmor, and keep Scorecard artifacts and SARIF repository-local.
-- Align the official Linear CLI with action v0.17.2 while preserving the
+- Align the official Linear CLI with action v0.18.0 while preserving the
   push-to-main continuous commit-history pipeline and its pending-run queue.
 - Add repository-local inbound rights documentation without changing the
   existing AGPL license, copyright notice or product privacy decisions.
