@@ -65,7 +65,7 @@ convertidos em massa.
 - GitHub Pages publica exclusivamente o conteúdo estático de `site/` em
   <https://calculadora-android.lcv.dev>.
 - Linear Release registra os commits de `main` no pipeline contínuo
-  correspondente, com a action e a CLI oficiais v0.17.2. A fila preserva runs
+  correspondente, com a action e a CLI oficiais v0.18.0. A fila preserva runs
   pendentes e as falhas permanecem visíveis. O registro não representa a
   publicação de um aplicativo Android nem depende do deploy de Pages.
 
