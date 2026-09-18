@@ -14,10 +14,21 @@ Gradle 9.7.1 com a distribuição fixada por checksum, Android Gradle Plugin
 `dev.lcv.calculadora`. Não há assinatura no repositório — o material de
 assinatura é injetado em tempo de build pelo fluxo de publicação.
 
-**Ainda não existe código Kotlin de aplicação.** O desenvolvimento do port
-nativo está especificado em
-[`docs/especificacao-v1.md`](docs/especificacao-v1.md) e começa pelo motor de
-cálculo.
+O desenvolvimento do port nativo está especificado em
+[`docs/especificacao-v1.md`](docs/especificacao-v1.md) e começou pelo motor de
+cálculo: o módulo `:core:calc`, entregue pela
+[CALANDR-13](https://linear.app/lcv-ideas-software/issue/CALANDR-13), é Kotlin
+puro, sem dependência de Android, com toda a regra de negócio do produto web —
+custo cartão × conta global, modo cobrado em reais, sensibilidade, contexto
+operacional com feriados móveis calculados pela Páscoa, backtest, leitura do CSV
+do BCB, parsing e formatação — em `BigDecimal`, testada na JVM. Ainda não há
+interface nem acesso a rede: `:core:data` e `:app` vêm em seguida.
+
+```
+:core:calc    Kotlin puro — motor e regras (entregue)
+:core:data    fontes de cotação, cache local, persistência do backtest
+:app          interface Compose e ViewModels
+```
 
 Aquele scaffold devia ter trazido, na mesma mudança revisada, validação do
 Gradle Wrapper, lint, testes, build e análise CodeQL adequada a Java/Kotlin.
@@ -38,13 +49,13 @@ Decisões de produto vigentes:
 
 O arquivo inerte
 [`quality/code-quality-probe.js`](quality/code-quality-probe.js) existe somente
-para fornecer ao GitHub Code Quality uma linguagem suportada enquanto não houver
-código Kotlin de aplicação. Ele não é carregado pela página, não integra o
-aplicativo e não representa cobertura de Kotlin. É a única fonte JavaScript do
-repositório e, portanto, o que sustenta a análise hoje: quando o Kotlin entrar e
-`java-kotlin` for acrescentado à configuração, esta sonda perde a finalidade e
-sai — nessa ordem, para que o repositório não fique sem linguagem analisável no
-intervalo.
+para fornecer ao GitHub Code Quality uma linguagem suportada enquanto
+`java-kotlin` não estiver na configuração do CodeQL. Ele não é carregado pela
+página, não integra o aplicativo e não representa cobertura de Kotlin. É a
+única fonte JavaScript do repositório e, portanto, o que sustenta a análise
+hoje: com o Kotlin já no repositório, o próximo passo é acrescentar
+`java-kotlin` à configuração e então remover o placeholder — nessa ordem, para
+que o repositório não fique sem linguagem analisável no intervalo.
 
 ## Tracking canônico
 
@@ -63,11 +74,12 @@ convertidos em massa.
 
 - O workflow `CI` compila, analisa e testa o projeto em cada pull request e em
   cada push para `main`: validação do Gradle Wrapper, `assembleDebug`,
-  `lintDebug` e testes unitários, com o mesmo JDK usado na publicação.
+  `lintDebug` e testes unitários — inclusive os do motor `:core:calc`, que
+  rodam na JVM — com o mesmo JDK usado na publicação.
 - CodeQL usa o Default setup nativo do GitHub para analisar GitHub Actions e
-  a sonda JavaScript inerte. Code Quality também usa a configuração nativa.
-  A linguagem `java-kotlin` será acrescentada junto com o primeiro Kotlin real,
-  porque a análise precisa de código para compilar.
+  o placeholder JavaScript inerte. Code Quality também usa a configuração nativa.
+  A linguagem `java-kotlin` é o próximo passo, agora que existe Kotlin para
+  compilar.
 - Dependency Review avalia as alterações de dependências nos pull requests.
 - Zizmor audita a segurança dos workflows e publica SARIF.
 - OpenSSF Scorecard observa a postura de supply chain do branch principal e
@@ -75,7 +87,9 @@ convertidos em massa.
 - Dependabot verifica GitHub Actions todos os dias, inclusive fins de semana,
   às 05h no fuso fixo UTC−03:00, com grupo de versões minor/patch e majors separados.
   O cooldown de sete dias preserva as exceções para `actions/*` e `github/*`.
-  O ecossistema Gradle foi declarado em 17/09/2026, junto com o projeto real.
+  O ecossistema Gradle foi declarado em 17/09/2026, junto com o projeto real, e
+  lê o catálogo `gradle/libs.versions.toml`, onde ficam as versões do Android
+  Gradle Plugin, do Kotlin Gradle Plugin e do JUnit.
   Atualizações de segurança têm um grupo separado e não aguardam o agendamento
   de versões nem o cooldown. Se um membro falhar, diagnosticar e ajustar o
   agrupamento nativo para liberar as demais correções com os checks exigidos.

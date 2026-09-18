@@ -52,10 +52,6 @@ updates:
     # dependency_not_found a cada execucao. Elas se corrigem quando o AGP publicar
     # versao que traga as bibliotecas atualizadas -- e o AGP permanece sob
     # atualizacao automatica por esta mesma entrada.
-    #
-    # ATENCAO: a linha do kotlin-gradle-plugin deve ser REMOVIDA assim que o KGP
-    # for declarado explicitamente no projeto, ou seja, quando houver codigo Kotlin.
-    # A partir dai ele passa a ser dependencia direta e atualizavel.
     ignore:
       - dependency-name: "org.apache.commons:commons-lang3"
       - dependency-name: "org.apache.httpcomponents:httpclient"
@@ -63,7 +59,6 @@ updates:
       - dependency-name: "org.bouncycastle:bcpkix-jdk18on"
       - dependency-name: "org.bouncycastle:bcprov-jdk18on"
       - dependency-name: "org.jdom:jdom2"
-      - dependency-name: "org.jetbrains.kotlin:kotlin-gradle-plugin"
     groups:
       security-updates:
         applies-to: security-updates

@@ -1,9 +1,18 @@
 # Third-party inventory
 
-There is no Android or production-runtime dependency at bootstrap. The table
-below records the direct automation dependencies. The current immutable pins
-are the full commit SHAs in each workflow's `uses:` references. Transitive
-Action dependencies remain defined by those pinned upstream actions.
+The first table records the build and runtime components of the Android
+project, versioned in `gradle/libs.versions.toml`. The second records the
+direct automation dependencies; their current immutable pins are the full
+commit SHAs in each workflow's `uses:` references, and transitive Action
+dependencies remain defined by those pinned upstream actions.
+
+| Component                                     | Version | License                                                                        | Purpose                                                                 |
+| --------------------------------------------- | ------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Android Gradle Plugin (`com.android.application`) | 9.4.0   | [Apache-2.0](https://developer.android.com/build/releases/gradle-plugin)       | Build the application module                                            |
+| Kotlin Gradle Plugin and `kotlin-stdlib`      | 2.4.20  | [Apache-2.0](https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt) | Compile the Kotlin modules; the standard library ships in the application |
+| `kotlin-test`                                 | 2.4.20  | [Apache-2.0](https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt) | Test assertions (test scope only)                                       |
+| JUnit Jupiter and JUnit Platform Launcher     | 6.1.3   | [EPL-2.0](https://github.com/junit-team/junit-framework/blob/main/LICENSE.md)  | Run the JVM tests of `:core:calc` (test scope only)                     |
+
 
 | Component                          | Version | Commit SHA                                 | License                                                                                                          | Purpose                                                           |
 | ---------------------------------- | ------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |

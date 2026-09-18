@@ -1,5 +1,6 @@
-# Android Studio and Gradle local state
+# Android Studio, Gradle and Kotlin local state
 .gradle/
+.kotlin/
 .idea/
 *.iml
 build/
