@@ -88,6 +88,16 @@ convertidos em massa.
   correspondente, com a action e a CLI oficiais v0.18.0. A fila preserva runs
   pendentes e as falhas permanecem visíveis. O registro não representa a
   publicação de um aplicativo Android nem depende do deploy de Pages.
+- O `publish-play.yml`, disparado manualmente, constrói o App Bundle, envia à
+  trilha escolhida da Google Play e recusa a publicação se o digest recebido
+  pela Play não for o do artefato construído. Quando a trilha é `production`,
+  o mesmo run registra uma **GitHub Release** com tag `vXX.XX.XX` derivada do
+  `versionName`, anexando o APK universal que a própria Play gerou e assinou
+  com a chave de assinatura do app — o mesmo binário da loja, portanto
+  instalável e atualizável em conjunto com ela — mais `SHA256SUMS` e uma
+  attestation de proveniência verificável com `gh attestation verify`. As
+  trilhas `internal`, `alpha` e `beta` ficam só na Play. Uma segunda
+  publicação em produção exige `versionName` novo: tag repetida falha o run.
 
 Todas as Actions externas usam SHA completo imutável diretamente nos workflows.
 O inventário de terceiros está em [`THIRDPARTY.md`](THIRDPARTY.md).

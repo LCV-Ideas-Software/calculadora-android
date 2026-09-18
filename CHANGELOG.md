@@ -6,6 +6,16 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Added
 
+- Record a GitHub Release on every publication to the Google Play `production`
+  track (operator decision of 18/09/2026, PANDROI-40). The Release carries the
+  universal APK that Google Play generated and signed with the app signing key
+  — the same binary the store distributes, so it installs alongside and updates
+  a Play installation, which an APK signed here with the upload key never
+  could — plus `SHA256SUMS` and a build provenance attestation from the
+  official `actions/attest`. The tag is `vXX.XX.XX` derived from `versionName`;
+  a repeated tag fails on purpose. Internal, alpha and beta publications stay in
+  Google Play alone. The Release is created as a draft, assets attached, then
+  published, the order immutable releases require.
 - Record the v1 specification in `docs/especificacao-v1.md`: scope, architecture
   and the operator's structural decisions for the native port. The application
   reimplements the web product's logic in new Kotlin rather than wrapping it,
