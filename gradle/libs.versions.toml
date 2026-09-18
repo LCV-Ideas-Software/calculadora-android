@@ -2,7 +2,7 @@
 # arquivo e mantém cada entrada atualizada pelo ecossistema `gradle` já
 # declarado em `.github/dependabot.yml`.
 [versions]
-agp = "9.4.0"
+agp = "9.4.1"
 kotlin = "2.4.20"
 junit = "6.1.3"
 
