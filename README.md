@@ -7,14 +7,25 @@ LCV Ideas & Software.
 
 ## Estado atual
 
-Este repositório contém apenas o baseline de governança, segurança,
-observabilidade e publicação. Ainda não existe projeto Gradle, código Android,
-configuração de assinatura, pacote de aplicação ou dependência de produção.
-Não adicione arquivos Gradle fictícios para satisfazer automações.
+O repositório já contém o projeto Gradle e a esteira de publicação na Play,
+introduzidos em 17/09/2026 pela [CALANDR-8](https://linear.app/lcv-ideas-software/issue/CALANDR-8):
+Gradle 9.7.1 com a distribuição fixada por checksum, Android Gradle Plugin
+9.4.0, `compileSdk` e `targetSdk` 36, `minSdk` 24 e o package name
+`dev.lcv.calculadora`. Não há assinatura no repositório — o material de
+assinatura é injetado em tempo de build pelo fluxo de publicação.
 
-Quando o scaffold Android real for introduzido, ele deverá usar o package name
-`dev.lcv.calculadora` e acrescentar, na mesma mudança revisada, validação do
+**Ainda não existe código Kotlin de aplicação.** O desenvolvimento do port
+nativo está especificado em
+[`docs/especificacao-v1.md`](docs/especificacao-v1.md) e começa pelo motor de
+cálculo.
+
+Aquele scaffold devia ter trazido, na mesma mudança revisada, validação do
 Gradle Wrapper, lint, testes, build e análise CodeQL adequada a Java/Kotlin.
+Trouxe apenas duas dessas peças — validação do wrapper e build — e ambas dentro
+do `publish-play.yml`, que roda por `workflow_dispatch`. A dívida é registrada e
+tratada na [CALANDR-10](https://linear.app/lcv-ideas-software/issue/CALANDR-10):
+o workflow `ci.yml` passa a compilar, analisar e testar todo pull request, e a
+análise CodeQL de Java/Kotlin entra junto com o primeiro Kotlin real.
 
 Decisões de produto vigentes:
 
@@ -27,9 +38,13 @@ Decisões de produto vigentes:
 
 O arquivo inerte
 [`quality/code-quality-probe.js`](quality/code-quality-probe.js) existe somente
-para fornecer ao GitHub Code Quality uma linguagem suportada antes do código
-Android real. Ele não é carregado pela página, não integra o aplicativo e não
-representa cobertura de Kotlin.
+para fornecer ao GitHub Code Quality uma linguagem suportada enquanto não houver
+código Kotlin de aplicação. Ele não é carregado pela página, não integra o
+aplicativo e não representa cobertura de Kotlin. É a única fonte JavaScript do
+repositório e, portanto, o que sustenta a análise hoje: quando o Kotlin entrar e
+`java-kotlin` for acrescentado à configuração, esta sonda perde a finalidade e
+sai — nessa ordem, para que o repositório não fique sem linguagem analisável no
+intervalo.
 
 ## Tracking canônico
 
@@ -46,8 +61,13 @@ convertidos em massa.
 
 ## Automação
 
+- O workflow `CI` compila, analisa e testa o projeto em cada pull request e em
+  cada push para `main`: validação do Gradle Wrapper, `assembleDebug`,
+  `lintDebug` e testes unitários, com o mesmo JDK usado na publicação.
 - CodeQL usa o Default setup nativo do GitHub para analisar GitHub Actions e
   a sonda JavaScript inerte. Code Quality também usa a configuração nativa.
+  A linguagem `java-kotlin` será acrescentada junto com o primeiro Kotlin real,
+  porque a análise precisa de código para compilar.
 - Dependency Review avalia as alterações de dependências nos pull requests.
 - Zizmor audita a segurança dos workflows e publica SARIF.
 - OpenSSF Scorecard observa a postura de supply chain do branch principal e
@@ -55,7 +75,7 @@ convertidos em massa.
 - Dependabot verifica GitHub Actions todos os dias, inclusive fins de semana,
   às 05h no fuso fixo UTC−03:00, com grupo de versões minor/patch e majors separados.
   O cooldown de sete dias preserva as exceções para `actions/*` e `github/*`.
-  Gradle será incluído somente quando existir um projeto Gradle real.
+  O ecossistema Gradle foi declarado em 17/09/2026, junto com o projeto real.
   Atualizações de segurança têm um grupo separado e não aguardam o agendamento
   de versões nem o cooldown. Se um membro falhar, diagnosticar e ajustar o
   agrupamento nativo para liberar as demais correções com os checks exigidos.

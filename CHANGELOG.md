@@ -4,7 +4,25 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- Add the `CI` workflow so every pull request and every push to `main` is
+  compiled, analysed and tested: Gradle wrapper validation, `:app:assembleDebug`,
+  `:app:lintDebug` and unit tests, on the same JDK 17 the publishing workflow
+  uses. Until now no workflow ran `build`, `lint` or `test` on a pull request —
+  wrapper validation and the build existed only inside `publish-play.yml`, which
+  runs on `workflow_dispatch`. This settles the debt the 17/09/2026 scaffold left
+  behind, and it has to precede the first Kotlin, because that first Kotlin is
+  the calculation engine.
+
 ### Changed
+
+- Correct the `README.md`, which still claimed no Gradle project or Android code
+  existed and that the Gradle ecosystem would only be declared once a real
+  project existed — both untrue since 17/09/2026. It now describes the scaffold
+  that is actually there, records the debt that scaffold left rather than erasing
+  it, and states that the inert Code Quality probe is waiting on Kotlin, not on
+  an Android project.
 
 - Update the official CodeQL Action to v4.38.0 and Zizmor Action to v0.6.4,
   retaining full commit pins and aligning the current third-party inventory.
