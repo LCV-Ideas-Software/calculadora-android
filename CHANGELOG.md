@@ -26,6 +26,19 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Changed
 
+- Correct `docs/especificacao-v1.md` after a fresh review of the day's work. The
+  scope inventory had counted only server-side logic and missed client-side
+  logic that is in scope — sharing, formatting and supported currencies, form
+  validation, the backtest read model and the licences screen — so the total
+  moves from about 820 to about 1,300 lines. The AwesomeAPI rationale was
+  invented: the documentation says keyless requests are served from cache, not
+  that limits are per IP; the web product uses no key and the application
+  inherits the same tier. Yahoo Finance had never been probed; it answers 200 to
+  an honest User-Agent and **429 to none**, which is now recorded. The claim
+  that `security.js` mattered for input sanitisation was false — it holds only
+  server concerns. And movable holidays in the web product exist in a table
+  for 2026 alone; by operator decision the application computes them from the
+  Easter date (Meeus/Jones/Butcher) for any year, instead of carrying the table.
 - Correct the `README.md`, which still claimed no Gradle project or Android code
   existed and that the Gradle ecosystem would only be declared once a real
   project existed — both untrue since 17/09/2026. It now describes the scaffold

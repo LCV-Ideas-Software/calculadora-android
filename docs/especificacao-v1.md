@@ -32,7 +32,29 @@ e-mail**.
 | Leitura do CSV de fechamento do Banco Central | `functions/api/cotacao-csv.mjs` | 17 |
 | Fator de calibragem | `functions/api/_shared/calibragem.mjs` | 11 |
 
-Aproximadamente **820 linhas de lógica** a reimplementar.
+Aproximadamente **820 linhas de lógica de servidor** a reimplementar.
+
+A elas se somam as lógicas que hoje vivem **no cliente web** e que também
+entram — não são inteligência artificial nem envio de e-mail:
+
+| Unidade | Origem no produto web | Linhas |
+| -- | -- | -- |
+| Compartilhar e copiar a simulação | `src/services/whatsapp.ts` | 79 |
+| Formatação, parsing localizado e moedas suportadas | `src/services/formatting.ts` | 140 |
+| Validação do formulário de simulação | `src/hooks/useSimulation.ts` | 228 |
+| Modelo de leitura do backtest: contagem, MAPE, últimas 20 observações | `functions/api/backtest.js` | 50 |
+| Exibição das licenças: LICENSE, NOTICE, THIRDPARTY | `src/modules/compliance/LicencasModule.tsx` | — |
+
+No Android, o compartilhamento usa a folha de compartilhamento nativa
+(`Intent.ACTION_SEND`) em vez de um endereço do WhatsApp, e a tela de licenças
+é obrigação da própria AGPL. O total a portar fica em torno de **1.300 linhas**.
+
+`src/services/storage.ts` (70 linhas) guarda apenas histórico e telemetria da
+inteligência artificial, e sai com ela.
+
+**Moedas suportadas: USD, EUR e GBP** — `SUPPORTED_CURRENCIES` em
+`formatting.ts`. O backtest registra observações apenas para USD e EUR, como no
+produto web.
 
 **Fora do escopo, por decisão do operador:**
 
@@ -41,9 +63,11 @@ Aproximadamente **820 linhas de lógica** a reimplementar.
 | `oraculo.ts` (327 linhas) e `oraculo-observabilidade.js` (80) | sem funcionalidade de inteligência artificial |
 | `enviar-email.js` (80) e `contato.js` | sem envio de e-mail |
 
-De `functions/api/_shared/security.js` interessa apenas a sanitização de
-entrada. O *rate limiting* é preocupação de servidor e não tem contraparte num
-aplicativo que fala direto com as fontes.
+`functions/api/_shared/security.js` fica inteiramente de fora: contém
+cabeçalhos de resposta, lista de origens permitidas, extração do IP do cliente e
+*rate limiting* — tudo preocupação de servidor, sem contraparte num aplicativo
+que fala direto com as fontes. A validação de entrada que importa ao aplicativo
+está em `useSimulation.ts` e na leitura do payload em `calcular.js`.
 
 Essas exclusões são coerentes com as decisões de produto já registradas no
 [`README.md`](../README.md): nenhuma funcionalidade de inteligência artificial,
@@ -108,15 +132,23 @@ API:
 | AwesomeAPI, User-Agent honesto, sem chave | HTTP 200, 0,19 s, dados válidos |
 | AwesomeAPI, sem User-Agent algum | HTTP 200 |
 | CSV de fechamento do BCB, User-Agent honesto | HTTP 200, 10.682 bytes |
+| Yahoo Finance, User-Agent honesto | HTTP 200, 0,94 s |
+| Yahoo Finance, sem User-Agent algum | **HTTP 429** |
 
-Duas conclusões dessa medição:
+Três conclusões dessa medição:
 
-1. **Nenhuma fonte filtra por User-Agent.** O `Mozilla/5.0` presente no código do
-   produto web é hábito herdado, não exigência. O aplicativo se identifica
-   honestamente.
-2. **Nenhuma fonte exige chave.** O limite da AwesomeAPI é por endereço IP; num
-   aplicativo, cada aparelho usa o seu, o que distribui a carga em vez de
-   concentrá-la num único servidor.
+1. **Nenhuma fonte recusa um User-Agent honesto.** O `Mozilla/5.0` presente no
+   código do produto web é hábito herdado, não exigência. O aplicativo se
+   identifica como o que é.
+2. **O Yahoo Finance recusa a ausência de User-Agent** (HTTP 429). Como o
+   aplicativo sempre envia o seu, não é um problema — mas é exigência real, e por
+   isso fica registrada.
+3. **Nenhuma fonte exige chave, e o aplicativo não usa nenhuma.** A documentação
+   da AwesomeAPI é explícita: sem chave, as respostas vêm de cache; com chave,
+   dados em tempo real e 100.000 requisições gratuitas. O produto web não usa
+   chave e já recebe a camada cacheada; o aplicativo herda exatamente o mesmo
+   comportamento. Uma chave embarcada num binário distribuído seria credencial
+   exposta, e por isso não é opção.
 
 O cache é local ao aparelho. A PTAX é diária, então um cache local atende bem;
 a taxa spot muda por minuto e é cacheada por janela curta.
@@ -162,6 +194,17 @@ O contexto operacional — hora, dia da semana, feriado, plantão — decide qua
 spread da conta global se aplica (`aberto` ou `fechado`) e é calculado no
 aplicativo, no fuso de Brasília.
 
+**Feriados móveis são calculados, não tabelados.** No produto web,
+`contexto-operacional.mjs` traz os feriados fixos numa lista e os móveis —
+Carnaval, Sexta-feira Santa, Corpus Christi — numa tabela **que só existe para
+2026**. Em 2027 esses dias passariam a contar como úteis e o spread aplicado
+seria o errado; no web um deploy corrige, no Android é uma publicação na Play.
+Por decisão do operador em 18/09/2026, o aplicativo deriva os feriados móveis da
+data da Páscoa pelo algoritmo de cômputo (Meeus/Jones/Butcher), válido para
+qualquer ano do calendário gregoriano, sem tabela e sem terceiro. É a mesma
+lógica do `BigDecimal`: onde a plataforma permite fazer melhor que o navegador,
+faz-se melhor. Os feriados fixos continuam em lista, porque são fixos.
+
 ## 8. Testes
 
 O motor em `:core:calc` é testado na JVM, sem emulador.
@@ -169,7 +212,8 @@ O motor em `:core:calc` é testado na JVM, sem emulador.
 Os casos verificam a **regra de negócio**, com valores conhecidos e resultados
 conferidos à mão: incidência de IOF, spread por modalidade, aplicação da
 calibragem, os três cenários do modo "cobrado em reais", a seleção de spread por
-contexto operacional, e as funções de erro percentual, MAPE e classificação.
+contexto operacional, o cômputo da Páscoa conferido contra datas conhecidas de
+vários anos, e as funções de erro percentual, MAPE e classificação.
 
 Cada caso precisa ser capaz de falhar. Um teste que passa com a regra desarmada
 não é evidência de nada.
@@ -197,6 +241,9 @@ que apareça como escolha deliberada em qualquer auditoria ou revisão futura.
 **Constantes de parâmetro**, conforme a seção 7.
 
 **Série de backtest iniciando vazia**, conforme a seção 3.
+
+**Taxa spot da camada cacheada da AwesomeAPI**, conforme a seção 5 — o mesmo que
+o produto web recebe hoje, porque nenhum dos dois usa chave.
 
 ## 11. Pendências que esta especificação cria
 
