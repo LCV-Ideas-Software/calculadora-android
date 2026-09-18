@@ -4,6 +4,17 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- Record the v1 specification in `docs/especificacao-v1.md`: scope, architecture
+  and the operator's structural decisions for the native port. The application
+  reimplements the web product's logic in new Kotlin rather than wrapping it,
+  carries every feature except artificial intelligence and e-mail, fetches
+  quotations directly from the sources, and computes with `BigDecimal` instead
+  of floating point. Each decision records the measurement behind it, and the
+  accepted risks are named so they surface as deliberate choices in any later
+  review.
+
 ### Changed
 
 - Update the official CodeQL Action to v4.38.0 and Zizmor Action to v0.6.4,
