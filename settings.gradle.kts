@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 rootProject.name = "calculadora-android"
 
 include(":app")
+include(":core:calc")

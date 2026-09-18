@@ -6,6 +6,25 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Added
 
+- Add the calculation engine as the first Kotlin of the port: the `:core:calc`
+  module, pure Kotlin with no Android dependency, holding every business rule
+  the web product keeps on the server and in the client — card versus global
+  account cost, the three scenarios of the charged-in-reais mode with the
+  reverse diagnosis, sensitivity bands, operational context in Brasília time,
+  backtest error, MAPE and classification, the Central Bank closing CSV,
+  localized number parsing, formatting, currencies and the best-option choice.
+  Arithmetic is `BigDecimal` with an explicit scale and rounding mode at every
+  step (operator decision). Movable holidays — Carnival, Good Friday, Corpus
+  Christi — are derived from Easter by the Meeus/Jones/Butcher computus instead
+  of a per-year table, so the spread selection stays right in any year without
+  a release. Seventy-one JVM tests with hand-checked values run under the
+  existing `./gradlew test` of the CI workflow; peer review (cross-review
+  session 96dd5a4b) caught a double rounding in the charged-in-reais
+  surcharges, fixed with two regressions before this landed. The Kotlin Gradle Plugin, JUnit
+  and the Android Gradle Plugin versions now live in the official Gradle
+  version catalog `gradle/libs.versions.toml`, and the Dependabot `ignore` for
+  the Kotlin Gradle Plugin is removed, as that file itself required once the
+  plugin became a direct dependency.
 - Record a GitHub Release on every publication to the Google Play `production`
   track (operator decision of 18/09/2026, PANDROI-40). The Release carries the
   universal APK that Google Play generated and signed with the app signing key
