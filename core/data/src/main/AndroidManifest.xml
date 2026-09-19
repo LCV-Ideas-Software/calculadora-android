@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A única permissão do aplicativo (spec, seção 9): as cotações vêm
+         direto das fontes. Declarada aqui, onde a rede vive; o merge de
+         manifestos a leva ao aplicativo. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+</manifest>
