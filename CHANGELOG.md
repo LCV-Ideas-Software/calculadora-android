@@ -6,6 +6,38 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Added
 
+- Add the data layer as the second Kotlin unit of the port: the `:core:data`
+  module, an Android library that feeds the engine with everything it does not
+  compute itself. The four quotation sources of the web product — BCB Olinda
+  PTAX, the BCB closing CSV, the AwesomeAPI spot and Yahoo Finance as its
+  contingency — sit behind thin Retrofit/OkHttp readers with a 4-second call
+  timeout, no API key, and an honest `User-Agent`
+  (`calculadora-android/<versionName> (Android; +https://calculadora.lcv.dev)`,
+  operator decision of 19/09/2026); the JSON of each source is read as text and
+  turned into `BigDecimal` without passing through floating point. PTAX is
+  looked up for the purchase day and up to six days back, cached per (currency,
+  day) in Room; the closing CSV is now a real same-day contingency when Olinda
+  is unavailable (in the web product it was a dead path for the supported
+  currencies). The spot is memoised in memory for 60 seconds (a backward
+  wall-clock adjustment counts as expiry, never as freshness) and, once
+  calibrated by the engine, persisted as the device's last known spot — the web
+  product's `LATEST_SPOT`. The backtest series lives in Room with the web
+  product's semantics: seven-day window capped at 200 observations, last 20
+  exposed, 30-day pruning; `BigDecimal` and dates are stored as exact text,
+  never `REAL`. `Simulador` orchestrates context, quotations, engine and
+  persistence and is the single entry point the interface will call. Two
+  deliberate departures from the web product, both recorded in the issue: the
+  CSV contingency above, and an observation is recorded only when a real spot
+  (from a source or the last saved one) was compared against the PTAX — on the
+  PTAX contingency the "error" is zero by construction and would only flatter
+  the MAPE. Tests on the JVM without an emulator: the readers against the
+  real payloads recorded on 19/09/2026 through the official OkHttp
+  `MockWebServer`, and the repositories and `Simulador` against in-memory
+  implementations of the Room DAO interfaces; the DAO SQL itself is covered by
+  an instrumented test run on the local emulator before each pull request,
+  since CI has none. Room, Hilt, KSP, OkHttp, Retrofit, kotlinx-serialization
+  and kotlinx-coroutines enter the version catalog and the third-party
+  inventory.
 - Add the calculation engine as the first Kotlin of the port: the `:core:calc`
   module, pure Kotlin with no Android dependency, holding every business rule
   the web product keeps on the server and in the client — card versus global
@@ -55,6 +87,14 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Changed
 
+- Raise the minimum Android version to 14 (`minSdk` 34) and compile against
+  Android 17 (`compileSdk` 37.2). The first is the operator's decision of
+  19/09/2026 (*"Estamos no Android 17. Versão mínima 14."*), which also makes
+  the engine's `java.time` native on every supported device, with no core
+  library desugaring; the second is required by OkHttp 5.5, whose Android
+  artifact refuses to compile against anything older than API 37; `targetSdk`
+  follows it, so the application declares itself built for the version it is
+  compiled against (lint `OldTargetApi`).
 - Correct `docs/especificacao-v1.md` after a fresh review of the day's work. The
   scope inventory had counted only server-side logic and missed client-side
   logic that is in scope — sharing, formatting and supported currencies, form

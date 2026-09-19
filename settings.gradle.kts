@@ -17,3 +17,4 @@ rootProject.name = "calculadora-android"
 
 include(":app")
 include(":core:calc")
+include(":core:data")

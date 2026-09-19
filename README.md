@@ -10,8 +10,8 @@ LCV Ideas & Software.
 O repositório já contém o projeto Gradle e a esteira de publicação na Play,
 introduzidos em 17/09/2026 pela [CALANDR-8](https://linear.app/lcv-ideas-software/issue/CALANDR-8):
 Gradle 9.7.1 com a distribuição fixada por checksum, Android Gradle Plugin
-9.4.0, `compileSdk` e `targetSdk` 36, `minSdk` 24 e o package name
-`dev.lcv.calculadora`. Não há assinatura no repositório — o material de
+9.4.x, `compileSdk` e `targetSdk` 37 (Android 17), `minSdk` 34 (Android 14,
+decisão do operador de 19/09/2026) e o package name `dev.lcv.calculadora`. Não há assinatura no repositório — o material de
 assinatura é injetado em tempo de build pelo fluxo de publicação.
 
 O desenvolvimento do port nativo está especificado em
@@ -21,12 +21,19 @@ cálculo: o módulo `:core:calc`, entregue pela
 puro, sem dependência de Android, com toda a regra de negócio do produto web —
 custo cartão × conta global, modo cobrado em reais, sensibilidade, contexto
 operacional com feriados móveis calculados pela Páscoa, backtest, leitura do CSV
-do BCB, parsing e formatação — em `BigDecimal`, testada na JVM. Ainda não há
-interface nem acesso a rede: `:core:data` e `:app` vêm em seguida.
+do BCB, parsing e formatação — em `BigDecimal`, testada na JVM. A camada de
+dados veio em seguida, pela
+[CALANDR-15](https://linear.app/lcv-ideas-software/issue/CALANDR-15): o módulo
+`:core:data`, Android library com as quatro fontes de cotação (BCB Olinda, CSV
+de fechamento do BCB, AwesomeAPI e Yahoo Finance) atrás de Retrofit/OkHttp com
+User-Agent honesto e sem chave, cache local e série do backtest em Room, Hilt
+para a injeção e o `Simulador`, que orquestra cotações, motor e persistência e
+é o único ponto de entrada da interface. Ainda não há interface: `:app` vem em
+seguida.
 
 ```
 :core:calc    Kotlin puro — motor e regras (entregue)
-:core:data    fontes de cotação, cache local, persistência do backtest
+:core:data    fontes de cotação, cache local, persistência do backtest (entregue)
 :app          interface Compose e ViewModels
 ```
 

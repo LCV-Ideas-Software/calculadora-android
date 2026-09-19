@@ -8,10 +8,20 @@ dependencies remain defined by those pinned upstream actions.
 
 | Component                                     | Version | License                                                                        | Purpose                                                                 |
 | --------------------------------------------- | ------- | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Android Gradle Plugin (`com.android.application`) | 9.4.0   | [Apache-2.0](https://developer.android.com/build/releases/gradle-plugin)       | Build the application module                                            |
+| Android Gradle Plugin (`com.android.application`, `com.android.library`) | 9.4.1 | [Apache-2.0](https://developer.android.com/build/releases/gradle-plugin) | Build the application and library modules |
 | Kotlin Gradle Plugin and `kotlin-stdlib`      | 2.4.20  | [Apache-2.0](https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt) | Compile the Kotlin modules; the standard library ships in the application |
 | `kotlin-test`                                 | 2.4.20  | [Apache-2.0](https://github.com/JetBrains/kotlin/blob/master/license/LICENSE.txt) | Test assertions (test scope only)                                       |
-| JUnit Jupiter and JUnit Platform Launcher     | 6.1.3   | [EPL-2.0](https://github.com/junit-team/junit-framework/blob/main/LICENSE.md)  | Run the JVM tests of `:core:calc` (test scope only)                     |
+| JUnit Jupiter and JUnit Platform Launcher     | 6.1.3   | [EPL-2.0](https://github.com/junit-team/junit-framework/blob/main/LICENSE.md)  | Run the JVM tests of `:core:calc` and `:core:data` (test scope only)   |
+| Kotlin Symbol Processing (`com.google.devtools.ksp`) | 2.3.12 | [Apache-2.0](https://github.com/google/ksp/blob/main/LICENSE) | Run the Room and Hilt annotation processors at build time |
+| AndroidX Room (`room-runtime`, `room-compiler`, Gradle plugin) | 2.8.5 | [Apache-2.0](https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/LICENSE.txt) | Local cache of quotations and the backtest series (ships in the application) |
+| Dagger Hilt (`hilt-android`, `hilt-android-compiler`, Gradle plugin) | 2.60.1 | [Apache-2.0](https://github.com/google/dagger/blob/master/LICENSE.txt) | Dependency injection (ships in the application) |
+| OkHttp (`okhttp`)                             | 5.5.0   | [Apache-2.0](https://github.com/square/okhttp/blob/master/LICENSE.txt) | HTTP client for the quotation sources (ships in the application) |
+| Retrofit (`retrofit`)                         | 3.0.0   | [Apache-2.0](https://github.com/square/retrofit/blob/trunk/LICENSE.txt) | Declarative readers of the quotation sources (ships in the application) |
+| kotlinx.serialization (`kotlinx-serialization-json`) | 1.11.0 | [Apache-2.0](https://github.com/Kotlin/kotlinx.serialization/blob/master/LICENSE.txt) | Parse the JSON of the quotation sources as text (ships in the application) |
+| kotlinx.coroutines (`kotlinx-coroutines-core`) | 1.11.0 | [Apache-2.0](https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt) | Suspending repositories and the spot memo lock (ships in the application) |
+| OkHttp `mockwebserver3`                       | 5.5.0   | [Apache-2.0](https://github.com/square/okhttp/blob/master/LICENSE.txt) | Fake HTTP server for the reader tests (test scope only) |
+| kotlinx.coroutines `kotlinx-coroutines-test`  | 1.11.0  | [Apache-2.0](https://github.com/Kotlin/kotlinx.coroutines/blob/master/LICENSE.txt) | Run suspending tests (test scope only) |
+| AndroidX Test (`runner` 1.7.0, `ext:junit` 1.3.0, `core` 1.7.0) | see catalog | [Apache-2.0](https://android.googlesource.com/platform/frameworks/support/+/refs/heads/androidx-main/LICENSE.txt) | Instrumented test of the Room DAOs on a device (androidTest scope only) |
 
 
 | Component                          | Version | Commit SHA                                 | License                                                                                                          | Purpose                                                           |

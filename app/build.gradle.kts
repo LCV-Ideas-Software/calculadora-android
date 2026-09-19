@@ -4,12 +4,18 @@ plugins {
 
 android {
     namespace = "dev.lcv.calculadora"
-    compileSdk = 36
+    // Android 17 (API 37): o OkHttp 5.5 exige compilar contra a API 37 ou
+    // superior. `targetSdk` acompanha, para que o aplicativo se declare feito
+    // para a versão contra a qual compila (lint OldTargetApi).
+    compileSdk = 37
+    compileSdkMinor = 2
 
     defaultConfig {
         applicationId = "dev.lcv.calculadora"
-        minSdk = 24
-        targetSdk = 36
+        // Android 14 (decisão do operador, 19/09/2026): o `java.time` do motor é
+        // nativo, sem core library desugaring.
+        minSdk = 34
+        targetSdk = 37
         versionCode = 1
         versionName = "0.1.0"
     }
