@@ -18,7 +18,8 @@ All material changes to `calculadora-android` are recorded here.
   looked up for the purchase day and up to six days back, cached per (currency,
   day) in Room; the closing CSV is now a real same-day contingency when Olinda
   is unavailable (in the web product it was a dead path for the supported
-  currencies). The spot is memoised in memory for 60 seconds and, once
+  currencies). The spot is memoised in memory for 60 seconds (a backward
+  wall-clock adjustment counts as expiry, never as freshness) and, once
   calibrated by the engine, persisted as the device's last known spot — the web
   product's `LATEST_SPOT`. The backtest series lives in Room with the web
   product's semantics: seven-day window capped at 200 observations, last 20

@@ -45,6 +45,10 @@ internal class RelogioFixo(inicio: Instant) : Clock() {
         agora += duracao
     }
 
+    fun recuar(duracao: Duration) {
+        agora -= duracao
+    }
+
     override fun getZone(): ZoneOffset = ZoneOffset.UTC
 
     override fun withZone(zone: java.time.ZoneId): Clock = this

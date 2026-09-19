@@ -59,7 +59,10 @@ class CotacoesRepository @Inject constructor(
     suspend fun spotBruta(moeda: String): CotacaoSpotBruta? = trava.withLock {
         val agora = relogio.instant()
         memoSpot[moeda]?.let { (quando, spot) ->
-            if (Duration.between(quando, agora) < JANELA_MEMO) return spot
+            // Idade negativa = relógio de parede ajustado para trás: o memo não
+            // pode congelar até o relógio alcançar `quando`; conta como expirado.
+            val idade = Duration.between(quando, agora)
+            if (!idade.isNegative && idade < JANELA_MEMO) return spot
         }
         val spot = provedorSpot.spotBruta(moeda) ?: return null
         memoSpot[moeda] = agora to spot

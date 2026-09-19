@@ -96,6 +96,18 @@ class CotacoesRepositoryTest {
     }
 
     @Test
+    fun `spot - relogio de parede ajustado para tras expira o memo em vez de congela-lo`() = runTest {
+        val repo = repositorio()
+        repo.spotBruta("USD")
+        relogio.recuar(Duration.ofHours(1))
+        repo.spotBruta("USD")
+        assertEquals(2, chamadasSpot, "idade negativa nao e frescor: consulta de novo")
+        relogio.avancar(Duration.ofSeconds(59))
+        repo.spotBruta("USD")
+        assertEquals(2, chamadasSpot, "o memo regravado no instante recuado vale 60 s a partir dele")
+    }
+
+    @Test
     fun `spot - fonte sem resposta nao entra no memo`() = runTest {
         spotDaFonte = null
         val repo = repositorio()
