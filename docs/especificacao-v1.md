@@ -16,6 +16,34 @@ webview e não executa código do produto web por baixo. Onde a plataforma Andro
 oferecer caminho melhor que o do navegador, o caminho melhor é o escolhido —
 `BigDecimal` na aritmética é o primeiro exemplo, e está na seção 6.
 
+**A aparência também é portada** (ordem do operador, 20/09/2026: *"se é um porte
+similar e nativo, inclusive a aparência é similar"*). A interface reproduz a do
+produto web — estrutura das telas, hierarquia, rótulos, espaçamentos e raios —
+com componentes nativos e com as cores e o ícone da marca. A frase acima sobre
+"caminho melhor da plataforma" governa a **implementação**, não a aparência do
+produto: o padrão visual do framework não substitui uma decisão de produto que
+já existe no web. O que não se reproduz com honestidade num aparelho — desfoque
+de fundo ao vivo, animação permanente atrás do conteúdo — é registrado como
+desvio declarado, nunca trocado em silêncio.
+
+São dois, e só dois, os desvios de aparência da entrega do `:app`
+(CALANDR-16):
+
+1. **Não há a tela de partículas animada atrás do conteúdo.** O web anima um
+   `canvas` permanente no fundo. Num telefone isso mantém a GPU e o
+   recompositor acordados enquanto a tela estiver aberta, e o que a animação
+   entrega é decoração, não informação. O fundo aqui é o gradiente claro
+   estático da marca.
+2. **Não há paleta escura.** A marca define tons claros; um tema escuro exigiria
+   inventar tons que ela não tem, o que seria criar identidade em vez de portá-la.
+   O tema é declaradamente claro até que a marca defina os tons escuros.
+
+Tudo o mais que difere é imposto pela plataforma, não escolhido: barra superior
+e conteúdo de largura cheia no lugar do painel centralizado que o navegador
+desenha numa janela larga, diálogo de data do Material no lugar do
+`<input type="date">`, e a folha de compartilhamento do Android no lugar do
+botão de copiar para a área de transferência.
+
 ## 2. Escopo
 
 Entra **tudo o que o produto web faz, exceto inteligência artificial e envio de
@@ -104,8 +132,12 @@ bastante para ser executado a cada mudança.
 ### Tecnologias
 
 Kotlin, Jetpack Compose, Material 3, ViewModel com `StateFlow`, Room para a
-série do backtest, DataStore para preferências, Hilt para injeção de dependência
-e Retrofit/OkHttp para rede. Tudo AndroidX oficial.
+série do backtest, Hilt para injeção de dependência e Retrofit/OkHttp para rede.
+Tudo AndroidX oficial. Esta lista previa também DataStore para preferências; a
+entrega do `:app` (CALANDR-16) mostrou que não há preferência a guardar — os
+parâmetros do formulário são sobreposições de uma simulação, não configuração do
+usuário —, então a dependência não entrou. Guardar nada em DataStore seria
+carregar uma biblioteca para não usá-la.
 
 O projeto passa a declarar o Kotlin Gradle Plugin. O `ignore` correspondente em
 [`.github/dependabot.yml`](../.github/dependabot.yml) deve ser removido na mesma

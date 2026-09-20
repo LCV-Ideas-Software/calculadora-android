@@ -1,4 +1,5 @@
-calculadora-android
+Calculadora Financeira
+
 Copyright © 2026 LCV Ideas & Software
 
 O conteúdo original deste repositório é software livre: você pode redistribuí-lo
@@ -12,3 +13,12 @@ FINALIDADE ESPECÍFICA. Consulte LICENSE.
 
 Componentes de terceiros mantêm seus próprios direitos e licenças. O inventário
 aplicável está em THIRDPARTY.md.
+
+MARCAS. O nome "LCV Ideas & Software" e o logotipo da LCV — neste
+repositório, os três vetores da marca em `app/src/main/res/drawable/` e o ícone
+adaptativo que os usa — são marcas da LCV Ideas & Software. A AGPL licencia o código, não
+as marcas: a licença concede o direito de usar, modificar e redistribuir este
+programa, e não concede o direito de usar estas marcas para identificar um
+trabalho derivado nem de sugerir associação com a LCV Ideas & Software. Quem
+redistribuir uma versão modificada deve substituir estes arquivos pela sua
+própria identidade visual.
