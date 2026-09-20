@@ -300,21 +300,25 @@ evidência.
    a dívida que ele deixou em vez de apagá-la, e a acompanhar cada módulo
    entregue do porte.
 
-### Abertas
+### Abertas, bloqueadas por dependência externa
 
-2. **CodeQL analisa Actions e o placeholder JavaScript**, não Kotlin. Com o
-   porte completo, o Kotlin é a maior parte do repositório e a configuração
-   precisa cobri-lo.
+2. **CodeQL analisa Actions e o placeholder JavaScript**, não Kotlin. A
+   pré-condição de existir Kotlin no `main` foi satisfeita em 18/09/2026 pela
+   CALANDR-13 (`:core:calc`, PR #40), não pelo `:app`.
 3. **O placeholder inerte `quality/code-quality-probe.js`** existe, segundo o
    próprio `README.md`, "somente para fornecer ao GitHub Code Quality uma
-   linguagem suportada antes do código Android real". Com Kotlin no
-   repositório, o motivo dele deixa de existir.
+   linguagem suportada antes do código Android real". O motivo dele só deixa de
+   existir quando o item 2 estiver feito.
 
-Os itens 2 e 3 são um só trabalho, e nesta ordem: acrescentar `java-kotlin`
-antes de remover o placeholder, para que o repositório não fique sem linguagem
-analisável no intervalo. Ambos são carregados pela issue #42, que a mesclagem
-do `:app` em 20/09/2026 **desbloqueou** — até então não havia Kotlin suficiente
-para justificar a troca.
+Os dois são um só trabalho, e nesta ordem: acrescentar `java-kotlin` antes de
+remover o placeholder, para que o repositório não fique sem linguagem analisável
+no intervalo. São carregados pela issue #42 (CALANDR-14).
+
+**O que bloqueia não é a falta de Kotlin — é o CodeQL.** Ele não suporta o
+Kotlin 2.4.20, que é a versão deste projeto, e por isso o operador retirou
+`java-kotlin` do Default setup em 18/09/2026, às 20:27. Enquanto o suporte não
+chegar, acrescentar a linguagem só produziria análise que falha. A reavaliação
+está marcada para **25/09/2026** e é da issue, não deste documento.
 
 ---
 

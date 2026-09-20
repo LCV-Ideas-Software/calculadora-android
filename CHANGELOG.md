@@ -146,8 +146,14 @@ All material changes to `calculadora-android` are recorded here.
   record of what the specification created; each now carries its state, with the
   date and the evidence. The two that remain — CodeQL not covering Kotlin, and
   the inert Code Quality placeholder that exists only until it does — are one
-  piece of work in that order, carried by issue #42, which merging `:app`
-  unblocked.
+  piece of work in that order, carried by issue #42, and the section now says
+  what actually blocks them: not the absence of Kotlin, which `:core:calc`
+  settled on 18/09/2026, but CodeQL itself, which does not support Kotlin 2.4.20
+  — the reason the operator removed `java-kotlin` from the Default setup that
+  same day. Reassessment is the issue's, dated 25/09/2026. The `README.md` said
+  the same thing in two places, calling the language change "the next step, now
+  that there is Kotlin to compile", which reads as available; both passages now
+  name what actually holds it.
 - Name the application by its public name wherever a person reads it. The
   launcher label and the first line of `NOTICE` — which the licences screen
   shows — said `Calculadora` and `calculadora-android`; the product is

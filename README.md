@@ -73,9 +73,14 @@ para fornecer ao GitHub Code Quality uma linguagem suportada enquanto
 `java-kotlin` não estiver na configuração do CodeQL. Ele não é carregado pela
 página, não integra o aplicativo e não representa cobertura de Kotlin. É a
 única fonte JavaScript do repositório e, portanto, o que sustenta a análise
-hoje: com o Kotlin já no repositório, o próximo passo é acrescentar
-`java-kotlin` à configuração e então remover o placeholder — nessa ordem, para
-que o repositório não fique sem linguagem analisável no intervalo.
+hoje. A troca é acrescentar `java-kotlin` à configuração e só então remover o
+placeholder — nessa ordem, para que o repositório não fique sem linguagem
+analisável no intervalo —, mas ela **não está liberada**: o CodeQL não suporta
+o Kotlin 2.4.20 deste projeto, e por isso `java-kotlin` foi retirado do Default
+setup em 18/09/2026. A pré-condição de existir Kotlin no `main` está satisfeita
+desde a mesma data; o que falta é do CodeQL. Rastreada pela
+[CALANDR-14](https://linear.app/lcv-ideas-software/issue/CALANDR-14), com
+reavaliação em 25/09/2026.
 
 ## Tracking canônico
 
@@ -98,8 +103,8 @@ convertidos em massa.
   rodam na JVM — com o mesmo JDK usado na publicação.
 - CodeQL usa o Default setup nativo do GitHub para analisar GitHub Actions e
   o placeholder JavaScript inerte. Code Quality também usa a configuração nativa.
-  A linguagem `java-kotlin` é o próximo passo, agora que existe Kotlin para
-  compilar.
+  A linguagem `java-kotlin` continua fora porque o CodeQL não suporta o Kotlin
+  2.4.20 deste projeto, não porque falte Kotlin — ver CALANDR-14.
 - Dependency Review avalia as alterações de dependências nos pull requests.
 - Zizmor audita a segurança dos workflows e publica SARIF.
 - OpenSSF Scorecard observa a postura de supply chain do branch principal e
