@@ -4,6 +4,20 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- Complete the third-party inventory for the Actions this repository's workflows
+  actually use. `actions/setup-java`, `gradle/actions` and
+  `google-github-actions/auth` were pinned in `ci.yml` and `publish-play.yml`
+  and missing from the table — an inventory that omits what a workflow runs is
+  not an inventory. `gradle/actions` is recorded as its own `LICENSE` states:
+  primarily MIT, with a vendored component, `gradle-actions-caching`, that is
+  proprietary under a separate licence detailed in that repository's
+  `DISTRIBUTION.md` and `NOTICE`. That is why GitHub classifies it as
+  `NOASSERTION`, and flattening it to MIT would misstate what ships. The gap was
+  found while porting this pipeline to astrologo-android and maestro-android, and
+  is fixed here for the same reason it was fixed there.
+
 ### Added
 
 - Record a GitHub Release for a version already live on Google Play, without
