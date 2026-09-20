@@ -137,6 +137,11 @@ convertidos em massa.
   attestation de proveniência verificável com `gh attestation verify`. As
   trilhas `internal`, `alpha` e `beta` ficam só na Play. Uma segunda
   publicação em produção exige `versionName` novo: tag repetida falha o run.
+  As notas da versão não são digitadas no Console: vivem em
+  `play/release-notes/pt-BR.txt` e sobem na mesma atualização de trilha, como
+  `releases[].releaseNotes[]` da API Android Publisher v3. Um passo anterior ao
+  build recusa arquivo ausente, vazio ou acima dos 500 caracteres por idioma que
+  o Console aceita.
 
 Todas as Actions externas usam SHA completo imutável diretamente nos workflows.
 O inventário de terceiros está em [`THIRDPARTY.md`](THIRDPARTY.md).

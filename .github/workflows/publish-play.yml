@@ -21,6 +21,10 @@ name: Publish to Google Play
 # compares certificates and treats a mismatch as a different app. Internal,
 # alpha and beta publications stay in Google Play alone.
 #
+# The release notes are not typed into the Console: they live in
+# `play/release-notes/<BCP-47>.txt` and go up with the track update, so what the
+# store shows is the same text the repository reviewed and merged.
+#
 # Required configuration:
 #   vars.PLAY_PACKAGE_NAME       application id published from this repository
 #   vars.WIF_PROVIDER            full resource name of the workload identity provider
@@ -90,6 +94,26 @@ jobs:
                  "under Settings > Secrets and variables > Actions."
             exit 1
           fi
+
+      - name: Verify the release notes
+        # O Google Play recebe as notas na atualização da trilha. A ajuda do
+        # Console fixa o teto em 500 caracteres Unicode por idioma, então ele é
+        # conferido aqui, e não descoberto por uma edição recusada depois de um
+        # build inteiro.
+        env:
+          NOTES_FILE: play/release-notes/pt-BR.txt
+        run: |
+          set -euo pipefail
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "::error::$NOTES_FILE está ausente ou vazio; o Google Play precisa das notas desta publicação."
+            exit 1
+          fi
+          chars=$(printf '%s' "$(cat "$NOTES_FILE")" | wc -m)
+          if [ "$chars" -gt 500 ]; then
+            echo "::error::As notas têm $chars caracteres; o Google Play aceita no máximo 500 por idioma."
+            exit 1
+          fi
+          echo "Notas da versão: $chars/500 caracteres."
 
       - name: Set up JDK 17
         # Android Gradle Plugin 9.x requires JDK 17 as both its minimum and its default.
@@ -176,6 +200,8 @@ jobs:
           TRACK: ${{ inputs.track }}
           BUNDLE: ${{ steps.artifact.outputs.path }}
           LOCAL_SHA: ${{ steps.artifact.outputs.sha256 }}
+          NOTES_FILE: play/release-notes/pt-BR.txt
+          NOTES_LANGUAGE: pt-BR
         run: |
           set -euo pipefail
           api=https://androidpublisher.googleapis.com/androidpublisher/v3/applications
@@ -212,11 +238,33 @@ jobs:
             exit 1
           fi
 
+          # As notas da versão viajam na atualização da trilha, que é onde a API
+          # Android Publisher as recebe: `releases[].releaseNotes[]`, do tipo
+          # `LocalizedText {language, text}`, com `language` em BCP-47. O corpo é
+          # montado por jq porque o texto é prosa em português, com acento, aspas
+          # e quebra de linha, e interpolação de shell o corromperia. `name` fica
+          # de fora de propósito: a API o deriva do `versionName`, então a release
+          # se chama pelo número do próprio aplicativo, sem uma segunda cópia da
+          # versão para manter em dia.
+          payload=$(jq -n \
+            --arg track "$TRACK" \
+            --arg code "$version" \
+            --arg language "$NOTES_LANGUAGE" \
+            --rawfile notes "$NOTES_FILE" \
+            '{
+               track: $track,
+               releases: [{
+                 versionCodes: [$code],
+                 status: "completed",
+                 releaseNotes: [{ language: $language, text: ($notes | sub("\n+$"; "")) }]
+               }]
+             }')
+
           curl -sS --fail-with-body -X PUT \
             -H "Authorization: Bearer $TOKEN" \
             -H "x-goog-user-project: $QUOTA_PROJECT" \
             -H 'Content-Type: application/json' \
-            -d "{\"track\":\"$TRACK\",\"releases\":[{\"versionCodes\":[\"$version\"],\"status\":\"completed\"}]}" \
+            -d "$payload" \
             "$api/$PACKAGE/edits/$edit/tracks/$TRACK" >/dev/null
 
           curl -sS --fail-with-body -X POST \
@@ -234,6 +282,7 @@ jobs:
             echo "- package: \`$PACKAGE\`"
             echo "- version code: \`$version\`"
             echo "- SHA-256 verified against Google Play: \`$LOCAL_SHA\`"
+            echo "- release notes sent for \`$NOTES_LANGUAGE\`, from \`$NOTES_FILE\`"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "version_code=$version" >> "$GITHUB_OUTPUT"
 

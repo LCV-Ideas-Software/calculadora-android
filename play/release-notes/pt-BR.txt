@@ -1,0 +1,9 @@
+Primeira versão pública.
+
+Compare quanto uma compra internacional custa em reais no cartão de crédito e na conta global, com IOF, spread e VET abertos parcela a parcela.
+
+Quando o lojista estrangeiro cobra em reais, veja os três cenários possíveis e descubra pela fatura qual deles aconteceu.
+
+Inclui bandas de sensibilidade, backtest de sete dias e parâmetros ajustáveis para os do seu banco.
+
+Sem coleta de dados, sem anúncio e sem conta. Código aberto sob AGPL-3.0.
