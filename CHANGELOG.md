@@ -4,7 +4,29 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [1.0.0] — 20/09/2026
+
+First public release: the native port is complete, `:core:calc` + `:core:data`
++ `:app`, and the Google Play store listing is filled. Everything below shipped
+in this version.
+
 ### Added
+
+- Send the release notes to Google Play from the repository instead of typing
+  them into the Console. The publishing workflow updated the track with only
+  `versionCodes` and `status`, so a publication reached the store with no
+  "what's new" at all. The notes now live in `play/release-notes/pt-BR.txt` and
+  travel in the same track update, as `releases[].releaseNotes[]` of
+  `LocalizedText {language, text}` with a BCP-47 language tag — the shape the
+  Android Publisher API v3 documents for `edits.tracks`. The body is built with
+  `jq` rather than shell interpolation, because the text is Portuguese prose
+  with accents, quotation marks and line breaks. A step before the build refuses
+  a missing, empty or over-long file: the Play Console documents the ceiling as
+  500 Unicode characters per language, and discovering it through a rejected
+  edit would waste a full build. `name` is deliberately not sent, so the API
+  derives the release name from `versionName` and the version lives in one place.
 
 - Add the interface and close the port: the `:app` module, Jetpack Compose with
   Material 3 over the `Simulador` of `:core:data`. Appearance is part of the
