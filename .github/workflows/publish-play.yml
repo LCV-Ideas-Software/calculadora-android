@@ -46,6 +46,16 @@ on:
           - alpha
           - beta
           - production
+      release_status:
+        description: >-
+          Release status. A draft app — one never published — only accepts
+          `draft` on production; the first publication is finished in the Console.
+        required: true
+        default: completed
+        type: choice
+        options:
+          - completed
+          - draft
 
 permissions: {}
 
@@ -202,6 +212,7 @@ jobs:
           LOCAL_SHA: ${{ steps.artifact.outputs.sha256 }}
           NOTES_FILE: play/release-notes/pt-BR.txt
           NOTES_LANGUAGE: pt-BR
+          RELEASE_STATUS: ${{ inputs.release_status }}
         run: |
           set -euo pipefail
           # `--fail-with-body` escreve o corpo do erro na saída padrão e sai 22.
@@ -278,12 +289,13 @@ jobs:
             --arg track "$TRACK" \
             --arg code "$version" \
             --arg language "$NOTES_LANGUAGE" \
+            --arg status "$RELEASE_STATUS" \
             --rawfile notes "$NOTES_FILE" \
             '{
                track: $track,
                releases: [{
                  versionCodes: [$code],
-                 status: "completed",
+                 status: $status,
                  releaseNotes: [{ language: $language, text: ($notes | sub("\n+$"; "")) }]
                }]
              }')
@@ -315,6 +327,28 @@ jobs:
           echo "version_code=$version" >> "$GITHUB_OUTPUT"
 
           if [ "$TRACK" != production ]; then
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Um release em rascunho não está sendo distribuído: ninguém o recebe
+          # até alguém apertar "Release" no Console. Gravar uma GitHub Release
+          # agora afirmaria que a loja entrega este binário, o que seria falso.
+          if [ "$RELEASE_STATUS" = draft ]; then
+            {
+              echo ""
+              echo "O release ficou como **rascunho** na trilha \`production\`."
+              echo ""
+              echo "Este aplicativo ainda é um *draft app* — nunca foi publicado —, e a API"
+              echo "recusa \`completed\` nesse estado: *\"Only releases with status draft may be"
+              echo "created on draft app\"*. A documentação oficial descreve o caminho: a"
+              echo "primeira publicação se conclui no Play Console, e o botão **Release** publica"
+              echo "o aplicativo junto."
+              echo ""
+              echo "A GitHub Release **não** foi gravada, porque a loja ainda não entrega este"
+              echo "binário. Depois que o aplicativo estiver publicado, as próximas publicações"
+              echo "usam \`completed\` e gravam a Release normalmente."
+            } >> "$GITHUB_STEP_SUMMARY"
             echo "released=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi

@@ -4,6 +4,23 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- Let the publishing workflow send a release as a draft, which is the only thing
+  Google Play accepts from an app that has never been published. The 1.0.0
+  publication to `production` was refused with *"Only releases with status draft
+  may be created on draft app"* — visible only because the previous change stopped
+  discarding the API's answer. The restriction is specific: the internal
+  publication of 17/09/2026 used `completed` on this same app and succeeded, so
+  it is the public track that a draft app guards. The official Play Console help
+  describes the path — *"When you're ready to publish a draft app, you'll need to
+  roll out a release. At the end of the release process, clicking Release will
+  also publish your app"* — so the API uploads the bundle and creates the draft,
+  and a person finishes the first publication in the Console. A `release_status`
+  input carries `completed` or `draft`, and a draft deliberately does **not**
+  record a GitHub Release: nobody receives that binary until someone presses the
+  button, and a Release would claim the store distributes it.
+
 ### Fixed
 
 - Let Google Play explain itself when it refuses a publication. The 1.0.0
