@@ -6,6 +6,21 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Added
 
+- Record a GitHub Release for a version already live on Google Play, without
+  rebuilding or re-uploading anything: the `Record a Play release on GitHub`
+  workflow, taking a `versionCode` and fetching the universal APK the Play
+  signed. It exists because the first publication of an app cannot be automated
+  end to end — a never-published app only accepts a draft release on the public
+  track, and a person finishes it in the Console. By then `publish-play.yml` has
+  already exited, and re-dispatching it does not help: it would rebuild and
+  re-upload the same `versionCode`, which the Play refuses. Measured on
+  20/09/2026: the Play makes the universal APK available as soon as it processes
+  the bundle, before any rollout, so the artefact is never what delays the
+  Release — the policy of only recording what the store distributes is. The
+  workflow refuses to run when the checked-out `versionCode` differs from the one
+  asked for, because recording a release under another version's name would be
+  worse than not recording it.
+
 - Let the publishing workflow send a release as a draft, which is the only thing
   Google Play accepts from an app that has never been published. The 1.0.0
   publication to `production` was refused with *"Only releases with status draft

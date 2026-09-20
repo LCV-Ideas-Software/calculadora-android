@@ -141,7 +141,10 @@ convertidos em massa.
   `play/release-notes/pt-BR.txt` e sobem na mesma atualização de trilha, como
   `releases[].releaseNotes[]` da API Android Publisher v3. Um passo anterior ao
   build recusa arquivo ausente, vazio ou acima dos 500 caracteres por idioma que
-  o Console aceita. O run recebe também um `release_status`: um aplicativo que
+  o Console aceita. O workflow `Record a Play release on GitHub` grava a Release
+  de uma versão que já está na loja, dado o `versionCode`, sem reconstruir nem
+  reenviar — é o caminho quando a publicação foi concluída no Console e o
+  `publish-play.yml` já terminou. O run de publicação recebe também um `release_status`: um aplicativo que
   nunca foi publicado é um *draft app*, e a API só aceita `draft` dele na trilha
   pública — a primeira publicação se conclui no Play Console, cujo botão de
   liberar publica o aplicativo junto. Um release em rascunho não grava GitHub
