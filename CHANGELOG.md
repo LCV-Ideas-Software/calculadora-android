@@ -4,7 +4,25 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
-Nothing yet.
+### Fixed
+
+- Let Google Play explain itself when it refuses a publication. The 1.0.0
+  release to `production` failed twice, and the entire error in the log was
+  `curl: (22) The requested URL returned error: 400` — the API answers 400 with a
+  body that names the reason, and the workflow threw that body away.
+  `--fail-with-body` writes it to standard output, and none of the four calls let
+  that output reach the log: two redirect to `/dev/null`, one feeds `jq`, and one
+  lands in a variable that `set -e` aborts before printing. Turning on debug
+  logging does not help, which was tried: it echoes the script, not the
+  execution, and the body stays discarded. Every call now goes through a `play`
+  helper that keeps body and status, returns the body on success and, on failure,
+  prints which call failed and what Google Play answered. The calls carry labels
+  — opening the edit, uploading the bundle, updating the track, committing the
+  edit, downloading the universal APK — so the log names the exact step. The
+  diagnostic goes to stderr deliberately: two calls are written with
+  `>/dev/null`, which would swallow a message printed on standard output beside
+  the success body. This does not fix the cause of the 400; it makes Google Play
+  state it.
 
 ## [1.0.0] — 20/09/2026
 
