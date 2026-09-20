@@ -141,7 +141,11 @@ convertidos em massa.
   `play/release-notes/pt-BR.txt` e sobem na mesma atualização de trilha, como
   `releases[].releaseNotes[]` da API Android Publisher v3. Um passo anterior ao
   build recusa arquivo ausente, vazio ou acima dos 500 caracteres por idioma que
-  o Console aceita.
+  o Console aceita. O run recebe também um `release_status`: um aplicativo que
+  nunca foi publicado é um *draft app*, e a API só aceita `draft` dele na trilha
+  pública — a primeira publicação se conclui no Play Console, cujo botão de
+  liberar publica o aplicativo junto. Um release em rascunho não grava GitHub
+  Release, porque a loja ainda não entrega aquele binário.
 
 Todas as Actions externas usam SHA completo imutável diretamente nos workflows.
 O inventário de terceiros está em [`THIRDPARTY.md`](THIRDPARTY.md).
