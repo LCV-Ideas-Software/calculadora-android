@@ -282,24 +282,39 @@ o produto web recebe hoje, porque nenhum dos dois usa chave.
 O `README.md` afirma que, quando o scaffold Android real for introduzido, a
 mesma mudança revisada deve acrescentar validação do Gradle Wrapper, lint,
 testes, build e análise CodeQL adequada a Java/Kotlin. O scaffold entrou em
-17/09/2026, e essas peças **ainda não existem**:
+17/09/2026 sem essas peças, e esta seção registrou as quatro que faltavam. Os
+itens não são apagados conforme se resolvem — são o registro do que esta
+especificação criou —, mas cada um carrega seu estado atual, com data e
+evidência.
 
-1. **Não há workflow de integração contínua** que compile, analise e teste. Os
-   workflows atuais cobrem publicação, Pages, Scorecard, Zizmor, revisão de
-   dependências, auto-merge do Dependabot e Linear Release — nenhum executa
-   `build` ou `test`.
-2. **CodeQL analisa Actions e a sonda JavaScript**, não Kotlin. Com código
-   Kotlin real, a configuração precisa cobri-lo.
-3. **A sonda inerte `quality/code-quality-probe.js`** existe, segundo o próprio
-   `README.md`, "somente para fornecer ao GitHub Code Quality uma linguagem
-   suportada antes do código Android real". Com Kotlin no repositório, o motivo
-   dela deixa de existir.
-4. **O `README.md` ficou desatualizado** pelo scaffold de 17/09: ainda afirma que
-   não existe projeto Gradle nem código Android, e que "Gradle será incluído
-   somente quando existir um projeto Gradle real" — quando o ecossistema Gradle
-   já foi declarado no Dependabot.
+### Resolvidas
 
-Cada uma vira issue própria, com contraparte nos dois rastreadores.
+1. **Workflow de integração contínua.** ~~Não existe workflow que compile,
+   analise e teste.~~ **Resolvida em 17/09/2026** pela CALANDR-10: o
+   `.github/workflows/ci.yml` valida o Gradle Wrapper e executa
+   `:app:assembleDebug`, `:app:lintDebug` e os testes unitários em todo pull
+   request e em todo push para `main`. É portão de todo PR desde então.
+4. **`README.md` desatualizado pelo scaffold de 17/09.** ~~Ainda afirma que não
+   existe projeto Gradle nem código Android.~~ **Resolvida em 17/09/2026**, na
+   mesma mudança: o `README.md` passou a descrever o scaffold real, a registrar
+   a dívida que ele deixou em vez de apagá-la, e a acompanhar cada módulo
+   entregue do porte.
+
+### Abertas
+
+2. **CodeQL analisa Actions e o placeholder JavaScript**, não Kotlin. Com o
+   porte completo, o Kotlin é a maior parte do repositório e a configuração
+   precisa cobri-lo.
+3. **O placeholder inerte `quality/code-quality-probe.js`** existe, segundo o
+   próprio `README.md`, "somente para fornecer ao GitHub Code Quality uma
+   linguagem suportada antes do código Android real". Com Kotlin no
+   repositório, o motivo dele deixa de existir.
+
+Os itens 2 e 3 são um só trabalho, e nesta ordem: acrescentar `java-kotlin`
+antes de remover o placeholder, para que o repositório não fique sem linguagem
+analisável no intervalo. Ambos são carregados pela issue #42, que a mesclagem
+do `:app` em 20/09/2026 **desbloqueou** — até então não havia Kotlin suficiente
+para justificar a troca.
 
 ---
 

@@ -135,6 +135,19 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Changed
 
+- Correct section 11 of `docs/especificacao-v1.md`, which still listed as
+  missing two pieces that have existed since 17/09/2026. The section stated
+  there was no continuous integration workflow compiling, analysing and testing
+  — `.github/workflows/ci.yml` has gated every pull request since CALANDR-10 —
+  and that the `README.md` still claimed no Gradle project existed, which the
+  same change corrected. A governing document cannot carry a statement its own
+  repository disproves: a reader of the specification today would conclude this
+  repository has no CI. The four items are not deleted, because they are the
+  record of what the specification created; each now carries its state, with the
+  date and the evidence. The two that remain — CodeQL not covering Kotlin, and
+  the inert Code Quality placeholder that exists only until it does — are one
+  piece of work in that order, carried by issue #42, which merging `:app`
+  unblocked.
 - Name the application by its public name wherever a person reads it. The
   launcher label and the first line of `NOTICE` — which the licences screen
   shows — said `Calculadora` and `calculadora-android`; the product is
