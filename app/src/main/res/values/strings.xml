@@ -1,4 +1,127 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Textos medidos no produto web (`calculadora-app/src/components` e
+  `functions/api/compra-reais.mjs`), não reescritos: o port se parece com a
+  origem também nas palavras. Os emojis fazem parte desses rótulos no web e
+  carregam sentido, então acompanham; a marca da LCV entra no cabeçalho, no
+  lugar do logotipo que o web usa ali.
+-->
 <resources>
-    <string name="app_name">Calculadora</string>
+    <!-- Nome público do aplicativo, em todo lugar que a pessoa vê: lançador,
+         gerenciador de aplicativos, loja. `calculadora-android` é nome interno
+         do repositório e não aparece para ninguém. -->
+    <string name="app_name">Calculadora Financeira</string>
+    <string name="titulo">Calculadora Financeira</string>
+    <string name="subtitulo">Simulador comparativo inteligente de câmbio internacional</string>
+    <string name="marca_descricao">LCV Ideas &amp; Software</string>
+
+    <string name="acao_licencas">Licenças</string>
+    <string name="acao_voltar">Voltar</string>
+    <string name="acao_calcular">Calcular</string>
+    <string name="acao_compartilhar">Compartilhar</string>
+    <string name="acao_escolher_data">Escolher</string>
+    <string name="acao_confirmar">Confirmar</string>
+    <string name="acao_cancelar">Cancelar</string>
+
+    <string name="campo_dcc">🇧🇷 O lojista estrangeiro cobrou em reais (DCC)</string>
+    <string name="campo_moeda">💱 Moeda estrangeira</string>
+    <string name="campo_data">📅 Data da compra</string>
+    <string name="campo_valor">💵 Valor em %1$s</string>
+    <string name="campo_valor_reais">💵 Valor cobrado em R$ (checkout)</string>
+    <string name="campo_fatura">🧾 Valor na fatura (R$)</string>
+    <string name="campo_vet_saldo">💰 VET saldo existente (R$)</string>
+    <string name="dica_fatura">Opcional — para diagnosticar a diferença</string>
+    <string name="dica_vet_saldo">Opcional — VET da compra anterior</string>
+
+    <string name="parametros_titulo">⚙️ Personalizar parâmetros (opcional)</string>
+    <string name="parametro_spread_cartao">Spread Cartão (%)</string>
+    <string name="parametro_iof_cartao">IOF Cartão (%)</string>
+    <string name="parametro_spread_global_aberto">Spread Global Aberto (%)</string>
+    <string name="parametro_spread_global_fechado">Spread Global Fechado (%)</string>
+    <string name="parametro_automatico">Auto</string>
+
+    <string name="exemplo_valor">1.000,00</string>
+    <string name="exemplo_fatura">1.035,00</string>
+    <string name="exemplo_vet">5,7340</string>
+
+    <string name="erro_valor_invalido">Informe um valor maior que zero.</string>
+    <string name="erro_data_ausente">Informe a data da compra.</string>
+    <string name="erro_falha">Não foi possível obter as cotações agora. Tente de novo.</string>
+    <string name="carregando">Consultando as fontes…</string>
+
+    <string name="cartao_credito">Cartão de Crédito</string>
+    <string name="cartao_global">Conta Global — Compra Agora</string>
+    <string name="cartao_saldo">Conta Global — Saldo Existente</string>
+    <string name="icone_cartao">💳</string>
+    <string name="icone_global">🌐</string>
+    <string name="icone_saldo">💰</string>
+    <string name="selo_vencedor">⭐ MELHOR</string>
+    <string name="melhor_opcao">✅ %1$s</string>
+
+    <string name="rotulo_taxa">Taxa utilizada</string>
+    <string name="rotulo_fonte">Fonte cotação</string>
+    <string name="rotulo_spread">Spread</string>
+    <string name="rotulo_iof">IOF</string>
+    <string name="rotulo_total">Total em Reais</string>
+    <string name="rotulo_vet">VET</string>
+
+    <string name="fonte_awesome">AwesomeAPI</string>
+    <string name="fonte_yahoo">Yahoo Finance</string>
+    <string name="fonte_ultimo_salvo">Último valor salvo</string>
+    <string name="fonte_ptax_contingencia">PTAX (contingência)</string>
+    <string name="fonte_ptax">PTAX do Banco Central</string>
+    <string name="pilula_plantao">🌙 Plantão</string>
+    <string name="pilula_contingencia">⚡ Contingência</string>
+
+    <string name="aviso_sem_global">⚠️ Moeda %1$s — apenas Cartão de Crédito disponível. Conta Global não suportada para esta moeda.</string>
+    <string name="indisponivel_ptax">PTAX indisponível para essa data.</string>
+    <string name="indisponivel_cambio">Câmbio da conta global indisponível agora.</string>
+
+    <string name="parametros_vigentes_titulo">📋 Parâmetros Vigentes</string>
+    <string name="parametro_vigente_iof_cartao">IOF Cartão</string>
+    <string name="parametro_vigente_spread_cartao">Spread Cartão</string>
+    <string name="parametro_vigente_iof_global">IOF Global</string>
+    <string name="parametro_vigente_spread_aberto">Spread Global ☀️</string>
+    <string name="parametro_vigente_spread_fechado">Spread Global 🌙</string>
+
+    <string name="sensibilidade_titulo">📊 Análise de Sensibilidade</string>
+    <string name="banda_otimista">🟢 Otimista</string>
+    <string name="banda_base">🟡 Base</string>
+    <string name="banda_pessimista">🔴 Pessimista</string>
+    <string name="vet_entre_parenteses">(VET %1$s)</string>
+
+    <string name="backtest_titulo">🧪 Backtest (7 dias)</string>
+    <string name="backtest_mape">MAPE 7d</string>
+    <string name="backtest_erro_atual">Erro atual</string>
+    <string name="backtest_observacoes">Observações</string>
+    <string name="qualidade_excelente">🏆 Excelente</string>
+    <string name="qualidade_boa">✅ Boa</string>
+    <string name="qualidade_atencao">⚠️ Atenção</string>
+
+    <string name="em_reais_titulo">🇧🇷 Compra internacional cobrada em reais</string>
+    <string name="em_reais_intro">Preço no checkout: R$ %1$s. Quando um lojista estrangeiro cobra em BRL, o custo final depende de como a transação foi liquidada. Veja os três cenários possíveis:</string>
+    <string name="cenario_adquirencia">Adquirência local (doméstica)</string>
+    <string name="cenario_dcc">DCC pura (só IOF)</string>
+    <string name="cenario_dupla">Dupla conversão (spread + IOF)</string>
+    <string name="cenario_indeterminado">Indeterminado</string>
+    <string name="icone_adquirencia">🇧🇷</string>
+    <string name="icone_dcc">🏷️</string>
+    <string name="icone_dupla">🔁</string>
+    <string name="descricao_adquirencia">Transação doméstica (adquirente/MoR brasileiro, ex. EBANX/dLocal/BoaCompra). Sem IOF e sem spread.</string>
+    <string name="descricao_dcc">O lojista converteu para BRL com markup próprio embutido; o emissor cobra apenas IOF sobre o valor em reais.</string>
+    <string name="descricao_dupla">Preço em BRL de vitrine liquidado em moeda estrangeira: a bandeira converte BRL→moeda e o emissor reconverte com spread próprio + IOF.</string>
+    <string name="pilula_provavel">provável</string>
+    <string name="rotulo_acrescimo">Acréscimo sobre o preço</string>
+    <string name="diagnostico_titulo">🔎 Diagnóstico da fatura</string>
+    <string name="diagnostico_valor">Valor na fatura</string>
+    <string name="diagnostico_acrescimo">Acréscimo medido</string>
+    <string name="diagnostico_indeterminado">O acréscimo não bate com nenhum cenário conhecido — pode haver tarifa fixa de transação internacional, markup de DCC do lojista embutido, ou alíquota/data de conversão diferente.</string>
+    <string name="dica_anti_dcc">💡 Dica anti-DCC: em maquininhas e sites que oferecem cobrar em reais, geralmente é mais barato escolher pagar na moeda do lojista (USD/EUR) — o markup da conversão dinâmica costuma superar o spread do seu emissor. Exceção: quando o pagamento em BRL é processado por adquirente local (Pix, boleto, EBANX/dLocal), aí a compra vira doméstica, sem IOF nem spread.</string>
+    <string name="nota_conta_global">🌐 Cartão de conta global (saldo em USD/EUR): estes cenários modelam cartões emitidos no Brasil. Se você pagar uma cobrança em BRL com cartão de conta global, o provedor faz a conversão reversa (saldo → reais) com a taxa/tarifa dele — sem novo IOF, mas com custo cambial nas duas pontas. Prefira usar o saldo na moeda em que ele está.</string>
+
+    <string name="compliance">AVISO DE COMPLIANCE: Esta calculadora é uma ferramenta de simulação independente e não possui vínculo, homologação ou integração sistêmica com qualquer instituição financeira específica. Os cálculos e avaliações aqui gerados não são oficiais, não constituem oferta ou promessa de crédito e não substituem as informações emitidas pela instituição financeira.</string>
+
+    <string name="licencas_aplicativo">Licença do aplicativo</string>
+    <string name="licencas_aviso">Aviso</string>
+    <string name="licencas_terceiros">Componentes de terceiros</string>
 </resources>

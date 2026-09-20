@@ -28,14 +28,27 @@ dados veio em seguida, pela
 de fechamento do BCB, AwesomeAPI e Yahoo Finance) atrás de Retrofit/OkHttp com
 User-Agent honesto e sem chave, cache local e série do backtest em Room, Hilt
 para a injeção e o `Simulador`, que orquestra cotações, motor e persistência e
-é o único ponto de entrada da interface. Ainda não há interface: `:app` vem em
-seguida.
+é o único ponto de entrada da interface. A interface fecha o port pela
+[CALANDR-16](https://linear.app/lcv-ideas-software/issue/CALANDR-16): o módulo
+`:app`, Jetpack Compose com Material 3, com as mesmas seções, os mesmos rótulos
+e a mesma marca do produto web, na moldura do Android.
 
 ```
 :core:calc    Kotlin puro — motor e regras (entregue)
 :core:data    fontes de cotação, cache local, persistência do backtest (entregue)
-:app          interface Compose e ViewModels
+:app          interface Compose e ViewModels (entregue)
 ```
+
+A aparência é parte do port, não uma releitura: os textos de `:app` foram
+medidos palavra por palavra no produto web, e as cores, o ícone e a marca são os
+da LCV. Muda só o que a plataforma obriga a mudar — barra superior e conteúdo de
+largura cheia no lugar do painel centralizado do navegador, diálogo de data
+nativo no lugar do `<input type="date">`, folha de compartilhamento do Android
+no lugar do botão de copiar. Dois afastamentos deliberados estão declarados em
+[`docs/especificacao-v1.md`](docs/especificacao-v1.md): não há a tela de
+partículas animada do fundo, porque animação permanente custa bateria sem
+entregar informação, e não há paleta escura, porque a marca ainda não definiu
+tons escuros e inventá-los seria criar identidade, não portá-la.
 
 Aquele scaffold devia ter trazido, na mesma mudança revisada, validação do
 Gradle Wrapper, lint, testes, build e análise CodeQL adequada a Java/Kotlin.

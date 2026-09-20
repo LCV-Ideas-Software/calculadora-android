@@ -6,6 +6,54 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Added
 
+- Add the interface and close the port: the `:app` module, Jetpack Compose with
+  Material 3 over the `Simulador` of `:core:data`. Appearance is part of the
+  port, not a reinterpretation (operator, 20/09/2026: *"se é um porte similar e
+  nativo, inclusive a aparência é similar"*), so every label, hint, emoji,
+  placeholder and compliance paragraph was measured word for word in
+  `calculadora-app/src/components` and `functions/api/compra-reais.mjs` rather
+  than rewritten, and the colours, the brand mark and the launcher icon are the
+  LCV's, converted from the brand SVGs into vectors and an adaptive icon with
+  its monochrome layer. The model for what a port owes each side is Proton's,
+  which the operator named: native idiom per platform over shared logic, with a
+  semantic design system — here `Tema`, whose roles (`textoNorm`, `textoFraco`,
+  `fundoNorm`, `separador`, `foco`) are provided through a
+  `CompositionLocalProvider` and mapped onto the Material 3 scheme, so a screen
+  never names a raw brand colour. What changes is only what the platform forces:
+  a top bar and full-width content instead of the browser's centred panel, the
+  native date dialog instead of `<input type="date">`, the Android share sheet
+  instead of a copy button. Two departures are declared rather than hidden — no
+  animated particle backdrop, because a permanent background animation costs
+  battery without carrying information, and no dark palette, because the brand
+  has not defined dark tones and inventing them would be creating an identity,
+  not porting one. The licences screen reads `LICENSE`, `NOTICE` and
+  `THIRDPARTY.md` from assets that a Gradle task copies from the repository root
+  at build time through the AGP generated-sources API, so no second, divergent
+  copy of those files can exist. Those files are written for an 80-column
+  editor, and drawn verbatim on a phone every hard-wrapped line wraps again into
+  an unreadable zigzag, with `#`, backticks and pipe tables showing as literal
+  characters; the screen therefore reflows them — paragraphs are rejoined and
+  set justified with a first-line indent and automatic hyphenation, headings are
+  styled, and each row of the third-party tables becomes a block with the
+  component in bold over its labelled fields, which is how a five-column table
+  reads on a phone. The words are the file's; only where the lines break is the
+  device's. The scroll container also gained an indicator: Compose draws none,
+  and in the versions this project pins (Foundation 1.12.1, Material 3 1.4.0)
+  the official API is half there — `ScrollIndicatorState` carries the offset and
+  the content and viewport sizes, but nothing consumes it — so a thin mark is
+  drawn on the right margin from the official `ScrollState` and removed when the
+  platform ships the other half. Twelve JVM tests drive the `ViewModel` against a
+  real `Simulador` over in-memory sources, and three Compose tests run the screen
+  itself on a device — CI has no emulator, so they run on the local one before
+  each pull request, as the `:core:data` DAO test already does. Those three
+  forced Espresso to be declared directly: Compose `ui-test` still drags in
+  espresso-core 3.5.0, which reflects on an `InputManager.getInstance()` that no
+  longer exists on API 37, so every Compose test died in `Espresso.onIdle` before
+  reaching an assertion; 3.7.0, declared in the catalog, is the Gradle mechanism
+  for raising a transitive and puts the dependency under Dependabot. Compose, the
+  Compose compiler plugin, Material 3, activity-compose, lifecycle-compose,
+  hilt-navigation-compose and Espresso enter the version catalog and the
+  third-party inventory.
 - Add the data layer as the second Kotlin unit of the port: the `:core:data`
   module, an Android library that feeds the engine with everything it does not
   compute itself. The four quotation sources of the web product — BCB Olinda
@@ -87,6 +135,20 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Changed
 
+- Name the application by its public name wherever a person reads it. The
+  launcher label and the first line of `NOTICE` — which the licences screen
+  shows — said `Calculadora` and `calculadora-android`; the product is
+  **Calculadora Financeira**, and `calculadora-android` is the repository's
+  internal name (operator, 20/09/2026). The `User-Agent` keeps
+  `calculadora-android/<versionName>`: it identifies the client to the quotation
+  sources, it is not a name shown to anyone, and it is the operator's decision of
+  19/09/2026.
+- Record in `NOTICE` that the AGPL licenses the code and not the marks. The
+  brand vectors and the launcher icon arrive with `:app`, and the licence that
+  lets anyone redistribute a modified version grants no right to keep the LCV
+  name or logo on it; whoever redistributes one replaces those files with their
+  own identity. Naming this now avoids a redistributor inheriting a trademark
+  claim from a licence that never covered it.
 - Raise the minimum Android version to 14 (`minSdk` 34) and compile against
   Android 17 (`compileSdk` 37.2). The first is the operator's decision of
   19/09/2026 (*"Estamos no Android 17. Versão mínima 14."*), which also makes
