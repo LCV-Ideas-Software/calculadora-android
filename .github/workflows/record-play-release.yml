@@ -145,11 +145,14 @@ jobs:
           echo "certificate=$cert" >> "$GITHUB_OUTPUT"
 
       - name: Attest the APK provenance
+        # Só `subject-path`, como no `publish-play.yml`: a action monta a
+        # provenance de build sozinha. Declarar `predicate-type` de SLSA com um
+        # `predicate` vazio faz o GitHub recusar com *"build definition is nil"*,
+        # porque a provenance exige um `buildDefinition` — medido no run
+        # 35522306341.
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: ${{ steps.apk.outputs.path }}
-          predicate-type: https://slsa.dev/provenance/v1
-          predicate: "{}"
 
       - name: Create the Release
         # Rascunho primeiro, assets depois, publicar por último: é a ordem que
