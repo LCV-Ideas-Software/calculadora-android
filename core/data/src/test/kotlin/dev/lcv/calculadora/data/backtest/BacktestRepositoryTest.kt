@@ -25,7 +25,7 @@ class BacktestRepositoryTest {
     private val dia = LocalDate.of(2026, 9, 18)
 
     private suspend fun registrar(erro: String) =
-        repo.registrar("USD", dia, taxaPrevista = dec("5.14"), taxaObservada = dec("5.1575"), erroPercentual = dec(erro))
+        repo.registrar("USD", dia.minusDays(dao.linhas.size.toLong()), taxaPrevista = dec("5.14"), taxaObservada = dec("5.1575"), erroPercentual = dec(erro))
 
     @Test
     fun `serie vazia - resumo sem MAPE nem qualidade`() = runTest {

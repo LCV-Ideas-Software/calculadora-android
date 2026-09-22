@@ -29,7 +29,7 @@ enum class FonteSpot {
 }
 
 /** Taxa spot bruta, como veio da fonte, ainda sem calibragem. */
-data class CotacaoSpotBruta(val taxa: BigDecimal, val fonte: FonteSpot)
+data class CotacaoSpotBruta(val taxa: BigDecimal, val fonte: FonteSpot, val instante: java.time.Instant? = null)
 
 enum class MotivoIndisponibilidade {
     PTAX_INDISPONIVEL,
@@ -44,6 +44,7 @@ sealed interface Modalidade {
         val dataCotacao: LocalDate? = null,
         val fonteSpot: FonteSpot? = null,
         val plantao: Boolean? = null,
+        val instanteCotacao: java.time.Instant? = null,
     ) : Modalidade
 
     data class Indisponivel(val motivo: MotivoIndisponibilidade) : Modalidade
@@ -91,6 +92,7 @@ object MotorCalculo {
         ptax: CotacaoPtax?,
         spotBruta: CotacaoSpotBruta?,
         ultimoSpotCalibrado: BigDecimal?,
+        instanteUltimoSpot: java.time.Instant? = null,
     ): Simulacao {
         val p = entrada.parametros
 
@@ -117,6 +119,8 @@ object MotorCalculo {
                     custo = calcularCusto(entrada.valorOriginal, taxaGlobal.taxa, spread, p.iofGlobal),
                     fonteSpot = taxaGlobal.fonte,
                     plantao = contexto.plantao,
+                    dataCotacao = if (taxaGlobal.fonte == FonteSpot.PTAX_CONTINGENCIA) ptax?.data else null,
+                    instanteCotacao = if (taxaGlobal.fonte == FonteSpot.ULTIMO_SPOT_SALVO) instanteUltimoSpot else spotBruta?.instante,
                 )
             }
         }

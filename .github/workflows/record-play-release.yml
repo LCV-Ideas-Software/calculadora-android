@@ -26,6 +26,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: play-release
+  cancel-in-progress: false
+
 jobs:
   record:
     name: Fetch the Play-signed APK and record the Release
@@ -109,11 +113,11 @@ jobs:
             local rotulo=$1; shift
             local corpo status
             corpo=$(mktemp)
-            status=$(curl -sS -o "$corpo" -w '%{http_code}' "$@") || {
+            status=$(curl -sS --connect-timeout 10 --max-time 120 -o "$corpo" -w '%{http_code}' "$@") || {
               echo "::error::$rotulo: curl falhou." >&2
               sed 's/^/  /' "$corpo" >&2; rm -f "$corpo"; return 1
             }
-            if [ "$status" -ge 400 ]; then
+            if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
               echo "::error::$rotulo: o Google Play respondeu HTTP $status." >&2
               sed 's/^/  /' "$corpo" >&2; rm -f "$corpo"; return 1
             fi
@@ -121,6 +125,25 @@ jobs:
           }
 
           auth=(-H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $QUOTA_PROJECT")
+          # Generated APKs exist before publication; only an active production
+          # release proves that this version is being served. Discard this read edit.
+          edit=$(play "abrir consulta da trilha" "${auth[@]}" -X POST \
+            -H 'Content-Type: application/json' -d '{}' "$api/$PACKAGE/edits" | jq -er '.id')
+          trap 'curl -sS --max-time 30 -X DELETE "${auth[@]}" "$api/$PACKAGE/edits/$edit" >/dev/null' EXIT
+          track=$(play "consultar production" "${auth[@]}" "$api/$PACKAGE/edits/$edit/tracks/production")
+          if ! printf '%s' "$track" | jq -e --arg code "$VERSION_CODE" \
+            'any(.releases[]?; ((.versionCodes // []) | index($code)) != null and (.status == "completed" or (.status == "inProgress" and .userFraction > 0)))' >/dev/null; then
+            echo "::error::O versionCode solicitado não está em distribuição na trilha production."
+            exit 1
+          fi
+          play "encerrar consulta" "${auth[@]}" -X DELETE "$api/$PACKAGE/edits/$edit" >/dev/null
+          trap - EXIT
+          lifecycle=$(play "consultar publicação efetiva" "${auth[@]}" "$api/$PACKAGE/tracks/production/releases")
+          if ! printf '%s' "$lifecycle" | jq -e --argjson code "$VERSION_CODE" \
+            'any(.releases[]?; .releaseLifecycleState == "RELEASE_LIFECYCLE_STATE_PUBLISHED" and any(.activeArtifacts[]?; .versionCode == $code))' >/dev/null; then
+            echo "::error::Esta versão ainda não foi aprovada e publicada na Play. Nenhuma GitHub Release será criada."
+            exit 1
+          fi
           gen="$api/$PACKAGE/generatedApks/$VERSION_CODE"
 
           listing=$(play "listar os APKs gerados" "${auth[@]}" "$gen")
@@ -137,6 +160,18 @@ jobs:
           play "baixar o APK universal" "${auth[@]}" "$gen/downloads/$download_id:download?alt=media" > "$apk"
           if [ ! -s "$apk" ]; then
             echo "::error::O APK universal do versionCode $VERSION_CODE veio vazio."
+            exit 1
+          fi
+          aapt=$(find "$ANDROID_HOME/build-tools" -mindepth 2 -maxdepth 2 -type f -name aapt | sort -V | tail -1)
+          apksigner=$(dirname "$aapt")/apksigner
+          metadata=$("$aapt" dump badging "$apk" | sed -n '1p')
+          if [[ "$metadata" != *"name='$PACKAGE'"* || "$metadata" != *"versionCode='$VERSION_CODE'"* || "$metadata" != *"versionName='$VERSION_NAME'"* ]]; then
+            echo "::error::O pacote/versão do APK não corresponde à publicação solicitada."
+            exit 1
+          fi
+          actual_cert=$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          if [ -z "$actual_cert" ] || [ "${actual_cert,,}" != "${cert,,}" ]; then
+            echo "::error::O certificado do APK não corresponde ao certificado informado pela Play."
             exit 1
           fi
           (cd release && sha256sum "$(basename "$apk")" > SHA256SUMS)
@@ -182,7 +217,17 @@ jobs:
             echo "Proveniência verificável com \`gh attestation verify\`."
           } > corpo.md
 
-          gh release create "$TAG" --draft --title "$VERSION_NAME" --notes-file corpo.md
+          if git ls-remote --exit-code --tags "https://github.com/$GITHUB_REPOSITORY.git" "refs/tags/$TAG" > "$RUNNER_TEMP/existing-tag"; then
+            echo "::error::A tag $TAG já existe; não reutilizar proveniência sem conferir a publicação existente."
+            exit 1
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "::error::Não foi possível verificar a existência da tag (git: $status)."
+              exit 1
+            fi
+          fi
+          gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "$VERSION_NAME" --notes-file corpo.md
           gh release upload "$TAG" release/*.apk release/SHA256SUMS
           gh release edit "$TAG" --draft=false
           {

@@ -59,7 +59,8 @@ class ProvedoresTest {
 
     private fun ptaxBcb() = ProvedorPtaxBcb(fonte<BcbOlinda>(), fonte<BcbFechamento>())
 
-    private fun spotWeb() = ProvedorSpotWeb(fonte<AwesomeApi>(), fonte<YahooFinance>())
+    private fun spotWeb() = ProvedorSpotWeb(fonte<AwesomeApi>(), fonte<YahooFinance>(),
+        java.time.Clock.fixed(java.time.Instant.parse("2026-09-18T23:00:00Z"), java.time.ZoneOffset.UTC))
 
     private fun resposta(codigo: Int, corpo: String = "") = MockResponse.Builder().code(codigo).body(corpo).build()
 
@@ -201,5 +202,17 @@ class ProvedoresTest {
     @Test
     fun `o cliente HTTP tem o tempo limite total de 4 s do produto web`() {
         assertEquals(4_000, cliente.callTimeoutMillis)
+    }
+
+    @Test fun `resposta muito grande nao e carregada integralmente`() = runTest {
+        servidor.enqueue(resposta(200, " ".repeat(1_048_577)))
+        servidor.enqueue(resposta(404))
+        assertNull(ptaxBcb().ptaxDoDia("USD", dia))
+    }
+
+    @Test fun `CSV de outro dia nao e atribuido a data pedida`() = runTest {
+        servidor.enqueue(resposta(503))
+        servidor.enqueue(resposta(200, "17/09/2026;220;A;USD;5,1;5,2;1;1"))
+        assertNull(ptaxBcb().ptaxDoDia("USD", dia))
     }
 }

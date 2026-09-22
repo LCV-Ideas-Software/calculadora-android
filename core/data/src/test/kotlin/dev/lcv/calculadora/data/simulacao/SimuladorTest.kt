@@ -41,7 +41,7 @@ class SimuladorTest {
     private val backtestDao = BacktestEmMemoria()
     private val dia = LocalDate.of(2026, 9, 18)
     private var ptax: BigDecimal? = dec("5.1575")
-    private var spot: CotacaoSpotBruta? = CotacaoSpotBruta(dec("5.1434"), FonteSpot.AWESOME_API)
+    private var spot: CotacaoSpotBruta? = CotacaoSpotBruta(dec("5.1434"), FonteSpot.AWESOME_API, relogio.instant())
     private var chamadasSpot = 0
 
     private fun simulador(): Simulador {
@@ -84,15 +84,16 @@ class SimuladorTest {
     }
 
     @Test
-    fun `sem spot - usa o ultimo spot salvo sem regrava-lo, e ainda registra a observacao`() = runTest {
+    fun `sem spot - usa o ultimo spot recente sem regravar nem registrar observacao`() = runTest {
         spot = null
-        ultimoSpot.linhas["USD"] = UltimoSpotEntity("USD", dec("5.10"), obtidoEm = 1L)
+        ultimoSpot.linhas["USD"] = UltimoSpotEntity("USD", dec("5.10"), obtidoEm = relogio.millis() - 1000)
         val resultado = simulador().simular(entrada())
         val global = assertIs<Modalidade.Suportada>(resultado.simulacao.global)
         assertEquals(FonteSpot.ULTIMO_SPOT_SALVO, global.fonteSpot)
         assertDecimal("5.10", global.taxaUtilizada)
-        assertEquals(1L, ultimoSpot.linhas["USD"]?.obtidoEm, "nao regravado")
-        assertEquals(1, backtestDao.linhas.size)
+        assertEquals(relogio.millis() - 1000, ultimoSpot.linhas["USD"]?.obtidoEm, "nao regravado")
+        assertEquals(0, backtestDao.linhas.size)
+        assertNull(resultado.backtest)
     }
 
     @Test
@@ -123,5 +124,21 @@ class SimuladorTest {
         assertEquals(MotivoIndisponibilidade.MOEDA_SEM_CONTA_GLOBAL, assertIs<Modalidade.Indisponivel>(resultado.simulacao.global).motivo)
         assertEquals(0, chamadasSpot)
         assertNull(resultado.backtest)
+    }
+
+    @Test fun `repetir simulacao nao multiplica amostras nem rejuvenesce a cotacao`() = runTest {
+        val motor = simulador()
+        motor.simular(entrada())
+        val instante = ultimoSpot.linhas.getValue("USD").obtidoEm
+        relogio.avancar(java.time.Duration.ofSeconds(30))
+        motor.simular(entrada())
+        assertEquals(1, backtestDao.linhas.size)
+        assertEquals(instante, ultimoSpot.linhas.getValue("USD").obtidoEm)
+    }
+
+    @Test fun `spot sem instante nao gera amostra`() = runTest {
+        spot = spot!!.copy(instante = null)
+        assertNull(simulador().simular(entrada()).backtest)
+        assertTrue(backtestDao.linhas.isEmpty())
     }
 }

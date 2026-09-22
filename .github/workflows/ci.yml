@@ -71,12 +71,21 @@ jobs:
         uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
 
       - name: Build
-        run: ./gradlew :app:assembleDebug --no-daemon --stacktrace
+        run: ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon --stacktrace
 
       - name: Lint
         # Executado em passo próprio, e não como parte de `build`, para que a
         # falha diga qual portão reprovou sem exigir leitura do log inteiro.
-        run: ./gradlew :app:lintDebug --no-daemon --stacktrace
+        run: ./gradlew :app:lintDebug :app:lintRelease --no-daemon --stacktrace
 
       - name: Unit tests
         run: ./gradlew test --no-daemon --stacktrace
+
+      - name: Enable emulator acceleration
+        run: sudo chmod a+rw /dev/kvm
+
+      - name: Instrumented tests on Android 14
+        run: >-
+          ./gradlew :core:data:pixel2api34DebugAndroidTest :app:pixel2api34DebugAndroidTest
+          -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+          --no-daemon --stacktrace

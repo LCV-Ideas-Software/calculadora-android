@@ -2,10 +2,10 @@
 
 ## Supported state
 
-Only the current `main` branch is maintained. The repository presently holds
-governance, static documentation, supply-chain workflows, a Pages placeholder,
-and an inert Code Quality probe. It does not yet contain an Android application
-or production runtime.
+The current `main` branch and the latest Android release are maintained.
+The repository contains the Kotlin/Compose application, its calculation engine,
+local Room storage, public exchange-rate clients and the Google Play publication
+workflows. There are no accounts, analytics SDKs or application backend.
 
 ## Reporting a vulnerability
 

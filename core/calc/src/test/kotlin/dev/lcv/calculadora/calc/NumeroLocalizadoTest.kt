@@ -43,4 +43,10 @@ class NumeroLocalizadoTest {
         assertEquals("6,38%", Formatacao.percentual(dec("0.0638")))
         assertEquals("—", Formatacao.reais(null))
     }
+
+    @Test fun `limites e agrupamentos invalidos nao entram na aritmetica`() {
+        listOf("1e2147483647", "9".repeat(10000), "1.23,45", "1,23.45", "0.000000001", "1234567890123")
+            .forEach { assertNull(parseNumeroLocalizado(it), it.take(40)) }
+        assertDecimal("999999999999.12345678", parseNumeroLocalizado("999999999999,12345678"))
+    }
 }

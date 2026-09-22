@@ -41,6 +41,7 @@ fun CampoEmCaixa(
     rotulo: String,
     modifier: Modifier = Modifier,
     dica: String? = null,
+    mostrarRotulo: Boolean = true,
     conteudo: @Composable () -> Unit,
 ) {
     Surface(
@@ -53,7 +54,7 @@ fun CampoEmCaixa(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Text(
+            if (mostrarRotulo) Text(
                 text = rotulo,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -72,11 +73,13 @@ fun CampoEmCaixa(
 fun CampoNumerico(
     valor: String,
     aoMudar: (String) -> Unit,
+    rotulo: String,
     modifier: Modifier = Modifier,
     exemplo: String? = null,
 ) {
     OutlinedTextField(
         value = valor,
+        label = { Text(rotulo) },
         onValueChange = aoMudar,
         modifier = modifier.fillMaxWidth(),
         singleLine = true,

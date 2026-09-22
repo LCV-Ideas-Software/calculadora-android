@@ -51,6 +51,7 @@ internal object DataModule {
     fun okHttp(identidade: IdentidadeAplicativo): OkHttpClient =
         OkHttpClient.Builder()
             .callTimeout(TEMPO_LIMITE)
+            .addInterceptor(dev.lcv.calculadora.data.rede.LimiteResposta())
             .addInterceptor { cadeia ->
                 cadeia.proceed(cadeia.request().newBuilder().header("User-Agent", identidade.userAgent).build())
             }
@@ -77,7 +78,8 @@ internal object DataModule {
     @Provides
     @Singleton
     fun bancoDeDados(@ApplicationContext contexto: Context): CalculadoraDatabase =
-        Room.databaseBuilder(contexto, CalculadoraDatabase::class.java, CalculadoraDatabase.NOME).build()
+        Room.databaseBuilder(contexto, CalculadoraDatabase::class.java, CalculadoraDatabase.NOME)
+            .addMigrations(CalculadoraDatabase.MIGRACAO_1_2).build()
 
     @Provides
     fun ptaxCache(db: CalculadoraDatabase): PtaxCacheDao = db.ptaxCache()

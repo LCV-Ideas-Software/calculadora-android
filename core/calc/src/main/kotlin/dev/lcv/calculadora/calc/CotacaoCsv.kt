@@ -14,11 +14,12 @@ import java.math.BigDecimal
  */
 object CotacaoCsv {
     /** Taxa de venda em reais da [moeda], ou `null` se ausente ou ilegível. */
-    fun taxaVenda(texto: String, moeda: String): BigDecimal? {
+    fun taxaVenda(texto: String, moeda: String, data: java.time.LocalDate? = null): BigDecimal? {
         for (linha in texto.lineSequence()) {
             val colunas = linha.split(';')
             if (colunas.size >= 6 && colunas[3].trim() == moeda) {
-                return colunas[5].trim().replace(',', '.').toBigDecimalOrNull()
+                if (data != null && colunas[0].trim() != data.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))) return null
+                return parseNumeroLocalizado(colunas[5])?.takeIf { it.signum() > 0 }
             }
         }
         return null

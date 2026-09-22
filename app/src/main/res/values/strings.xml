@@ -90,13 +90,13 @@
     <string name="banda_pessimista">🔴 Pessimista</string>
     <string name="vet_entre_parenteses">(VET %1$s)</string>
 
-    <string name="backtest_titulo">🧪 Backtest (7 dias)</string>
-    <string name="backtest_mape">MAPE 7d</string>
-    <string name="backtest_erro_atual">Erro atual</string>
+    <string name="backtest_titulo">🧪 Comparação diária (7 dias)</string>
+    <string name="backtest_mape">Desvio médio (MAPE)</string>
+    <string name="backtest_erro_atual">Diferença atual</string>
     <string name="backtest_observacoes">Observações</string>
-    <string name="qualidade_excelente">🏆 Excelente</string>
-    <string name="qualidade_boa">✅ Boa</string>
-    <string name="qualidade_atencao">⚠️ Atenção</string>
+    <string name="qualidade_excelente">Diferença baixa</string>
+    <string name="qualidade_boa">Diferença moderada</string>
+    <string name="qualidade_atencao">Diferença elevada</string>
 
     <string name="em_reais_titulo">🇧🇷 Compra internacional cobrada em reais</string>
     <string name="em_reais_intro">Preço no checkout: R$ %1$s. Quando um lojista estrangeiro cobra em BRL, o custo final depende de como a transação foi liquidada. Veja os três cenários possíveis:</string>
@@ -124,4 +124,10 @@
     <string name="licencas_aplicativo">Licença do aplicativo</string>
     <string name="licencas_aviso">Aviso</string>
     <string name="licencas_terceiros">Componentes de terceiros</string>
+    <string name="erro_data_futura">Informe uma data até hoje. Não há cotação observada para uma compra futura.</string>
+    <string name="erro_parametro_invalido">IOF e spreads devem ser números entre 0 e 100%. Deixe em branco para usar o padrão.</string>
+    <string name="erro_opcional_invalido">O VET ou valor da fatura informado deve ser um número positivo válido.</string>
+    <string name="data_ptax">PTAX de fechamento</string>
+    <string name="instante_spot">Cotação spot</string>
+    <string name="aviso_comparacao_temporal">O cartão usa a PTAX da data informada ou do dia anterior disponível. A conta global usa a cotação disponível agora (até 24 h), não uma cotação histórica.</string>
 </resources>

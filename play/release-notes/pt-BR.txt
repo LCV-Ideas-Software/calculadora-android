@@ -1,9 +1,7 @@
-Primeira versão pública.
+Correções de estabilidade e confiabilidade.
 
-Compare quanto uma compra internacional custa em reais no cartão de crédito e na conta global, com IOF, spread e VET abertos parcela a parcela.
+Resultados antigos não reaparecem após editar o formulário. Validação de números e parâmetros reforçada, com restauração das entradas após interrupções.
 
-Quando o lojista estrangeiro cobra em reais, veja os três cenários possíveis e descubra pela fatura qual deles aconteceu.
+PTAX somente de fechamento; cotações spot com prazo de validade e data visível. Comparação diária sem amostras repetidas ou de períodos diferentes.
 
-Inclui bandas de sensibilidade, backtest de sete dias e parâmetros ajustáveis para os do seu banco.
-
-Sem coleta de dados, sem anúncio e sem conta. Código aberto sob AGPL-3.0.
+Melhorias de contraste, identificação dos campos, valores em reais, sensibilidade e compartilhamento.

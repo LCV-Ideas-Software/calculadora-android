@@ -14,6 +14,10 @@ Gradle 9.7.1 com a distribuição fixada por checksum, Android Gradle Plugin
 decisão do operador de 19/09/2026) e o package name `dev.lcv.calculadora`. Não há assinatura no repositório — o material de
 assinatura é injetado em tempo de build pelo fluxo de publicação.
 
+A versão 1.0.1 corrige a auditoria pós-porte: [contratos e evidências](docs/correcoes-v1.0.1.md).
+O fluxo de [publicação e revisão na Google Play](docs/publicacao-play.md) distingue
+envio, análise e distribuição efetiva. A CI também testa Room/Compose na API mínima 34.
+
 O desenvolvimento do port nativo está especificado em
 [`docs/especificacao-v1.md`](docs/especificacao-v1.md) e começou pelo motor de
 cálculo: o módulo `:core:calc`, entregue pela
@@ -39,9 +43,9 @@ e a mesma marca do produto web, na moldura do Android.
 :app          interface Compose e ViewModels (entregue)
 ```
 
-A aparência é parte do port, não uma releitura: os textos de `:app` foram
-medidos palavra por palavra no produto web, e as cores, o ícone e a marca são os
-da LCV. Muda só o que a plataforma obriga a mudar — barra superior e conteúdo de
+A aparência preserva a identidade do port. Na 1.0.1, rótulos, contraste e avisos
+foram ajustados para acessibilidade e precisão; o ícone e a marca continuam os
+da LCV. A interface usa recursos nativos — barra superior e conteúdo de
 largura cheia no lugar do painel centralizado do navegador, diálogo de data
 nativo no lugar do `<input type="date">`, folha de compartilhamento do Android
 no lugar do botão de copiar. Dois afastamentos deliberados estão declarados em

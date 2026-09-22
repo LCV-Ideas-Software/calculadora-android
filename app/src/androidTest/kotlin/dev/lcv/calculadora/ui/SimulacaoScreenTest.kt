@@ -5,6 +5,8 @@
 package dev.lcv.calculadora.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -69,7 +71,8 @@ class SimulacaoScreenTest {
     }
 
     private fun montar() {
-        compose.setContent { CalculadoraTheme { SimulacaoScreen(viewModel()) } }
+        val vm = viewModel()
+        compose.setContent { CalculadoraTheme { SimulacaoScreen(vm) } }
     }
 
     @Test
@@ -77,7 +80,7 @@ class SimulacaoScreenTest {
         montar()
 
         compose.onNodeWithTag(Marcas.DCC).assertIsDisplayed()
-        compose.onNodeWithTag(Marcas.VALOR).assertIsDisplayed()
+        compose.onNodeWithTag(Marcas.VALOR).assertIsDisplayed().assert(hasText("💵 Valor em USD"))
         compose.onNodeWithTag(Marcas.CALCULAR).assertIsDisplayed()
     }
 

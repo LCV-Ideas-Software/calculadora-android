@@ -7,21 +7,21 @@ package dev.lcv.calculadora.calc
 import java.math.BigDecimal
 
 /**
- * Converte a entrada digitada em número, aceitando o formato brasileiro e o
- * norte-americano: o último separador presente é o decimal e o outro, se
- * houver, é o de milhar. `"1.234,56"`, `"1,234.56"`, `"5,5"` e `"5.5"` são
- * todos válidos. Devolve `null` para entrada vazia ou ilegível.
+ * Decimal sem expoente: até 12 algarismos inteiros e 8 decimais.
+ * Aceita vírgula ou ponto decimal; agrupamento exige grupos de três e ambos
+ * os separadores (1.234,56 ou 1,234.56). Um separador único é sempre decimal.
  */
 fun parseNumeroLocalizado(texto: String): BigDecimal? {
+    if (texto.length > 40) return null
     val s = texto.trim()
-    if (s.isEmpty()) return null
-    val ultimoPonto = s.lastIndexOf('.')
-    val ultimaVirgula = s.lastIndexOf(',')
+    val simples = Regex("[+-]?[0-9]{1,12}([.,][0-9]{1,8})?")
+    val brasileiro = Regex("[+-]?[0-9]{1,3}(\\.[0-9]{3}){1,3},[0-9]{1,8}")
+    val americano = Regex("[+-]?[0-9]{1,3}(,[0-9]{3}){1,3}\\.[0-9]{1,8}")
     val normalizado = when {
-        ultimoPonto >= 0 && ultimaVirgula >= 0 ->
-            if (ultimaVirgula > ultimoPonto) s.replace(".", "").replace(',', '.') else s.replace(",", "")
-        ultimaVirgula >= 0 -> s.replace(',', '.')
-        else -> s
+        simples.matches(s) -> s.replace(',', '.')
+        brasileiro.matches(s) -> s.replace(".", "").replace(',', '.')
+        americano.matches(s) -> s.replace(",", "")
+        else -> return null
     }
     return normalizado.toBigDecimalOrNull()
 }

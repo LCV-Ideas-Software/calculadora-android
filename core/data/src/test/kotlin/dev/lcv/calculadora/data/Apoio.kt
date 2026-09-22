@@ -85,7 +85,9 @@ internal class BacktestEmMemoria : BacktestDao {
         private set
 
     override suspend fun inserir(observacao: ObservacaoBacktestEntity) {
-        linhas += observacao.copy(id = (linhas.size + 1).toLong())
+        if (linhas.none { it.moeda == observacao.moeda && it.dataCompra == observacao.dataCompra }) {
+            linhas += observacao.copy(id = (linhas.size + 1).toLong())
+        }
     }
 
     override suspend fun desde(desde: Long, limite: Int): List<ObservacaoBacktestEntity> {

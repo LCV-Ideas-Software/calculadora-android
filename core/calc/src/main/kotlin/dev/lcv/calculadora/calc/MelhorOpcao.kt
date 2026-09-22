@@ -25,7 +25,7 @@ fun melhorOpcao(simulacao: Simulacao): Opcao? {
 }
 
 /** Entrada do formulário que impede a simulação. */
-enum class ErroEntrada { VALOR_INVALIDO, DATA_AUSENTE }
+enum class ErroEntrada { VALOR_INVALIDO, DATA_AUSENTE, DATA_FUTURA, PARAMETRO_INVALIDO, OPCIONAL_INVALIDO }
 
 /**
  * Validação do formulário, como no produto web: o valor precisa ser um número

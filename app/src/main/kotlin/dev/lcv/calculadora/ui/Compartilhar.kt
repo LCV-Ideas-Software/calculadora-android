@@ -28,9 +28,22 @@ fun textoDaSimulacao(simulacao: Simulacao): String {
     )
     (simulacao.cartao as? Modalidade.Suportada)?.let {
         linhas += "Cartão: R$ ${Formatacao.reais(it.custo.valorTotalBrl)} (VET ${Formatacao.taxa(it.custo.vet)})"
+        linhas += "PTAX de fechamento: ${it.dataCotacao?.format(DATA_BR) ?: "data indisponível"}"
     }
     (simulacao.global as? Modalidade.Suportada)?.let {
         linhas += "Conta global: R$ ${Formatacao.reais(it.custo.valorTotalBrl)} (VET ${Formatacao.taxa(it.custo.vet)})"
+        linhas += "Fonte: " + when (it.fonteSpot) {
+            dev.lcv.calculadora.calc.FonteSpot.AWESOME_API -> "AwesomeAPI"
+            dev.lcv.calculadora.calc.FonteSpot.YAHOO_FINANCE -> "Yahoo Finance"
+            dev.lcv.calculadora.calc.FonteSpot.ULTIMO_SPOT_SALVO -> "último spot salvo (contingência, máximo 24 h)"
+            else -> "PTAX de fechamento (contingência): ${it.dataCotacao?.format(DATA_BR)}"
+        }
+        it.instanteCotacao?.let { instante ->
+            linhas += "Cotação spot: " + instante.atZone(dev.lcv.calculadora.calc.ContextoOperacional.FUSO_BRASILIA)
+                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+        }
+        if (it.plantao == true) linhas += "Spread de plantão aplicado."
+        linhas += "A conta global usa a cotação disponível agora; não reconstrói uma compra histórica."
     }
     simulacao.saldoExistente?.let {
         linhas += "Saldo já carregado: R$ ${Formatacao.reais(it.valorTotalBrl)} (VET ${Formatacao.taxa(it.vetInformado)})"

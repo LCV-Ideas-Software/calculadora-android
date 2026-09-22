@@ -29,6 +29,15 @@ android {
     }
 
     testOptions {
+        managedDevices {
+            localDevices {
+                create("pixel2api34") {
+                    device = "Pixel 2"
+                    apiLevel = 34
+                    systemImageSource = "aosp"
+                }
+            }
+        }
         unitTests.all { it.useJUnitPlatform() }
     }
 }
@@ -37,6 +46,12 @@ room {
     // Esquema versionado: é o que permite escrever migrações quando a
     // estrutura mudar, em vez de descartar os dados do aparelho.
     schemaDirectory("$projectDir/schemas")
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.androidTest?.sources?.assets?.addStaticSourceDirectory("$projectDir/schemas")
+    }
 }
 
 dependencies {
