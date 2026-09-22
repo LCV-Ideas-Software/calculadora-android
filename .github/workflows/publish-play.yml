@@ -420,14 +420,20 @@ jobs:
             exit 1
           fi
           aapt=$(find "$ANDROID_HOME/build-tools" -mindepth 2 -maxdepth 2 -type f -name aapt | sort -V | tail -1)
-          apksigner=$(dirname "$aapt")/apksigner
+          apksigner="$ANDROID_HOME/build-tools/37.0.0/lib/apksigner.jar"
           metadata=$("$aapt" dump badging "$apk" | sed -n '1p')
           if [[ "$metadata" != *"name='$PACKAGE'"* || "$metadata" != *"versionCode='$version'"* || "$metadata" != *"versionName='$VERSION_NAME'"* ]]; then
             echo "::error::O pacote/versão do APK não corresponde à publicação solicitada."
             exit 1
           fi
-          actual_cert=$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
-          if [ -z "$actual_cert" ] || [ "${actual_cert,,}" != "${cert,,}" ]; then
+          # Android 17 hybrid signatures require ML-DSA (JDK 24+). The hosted
+          # runner supplies JDK 25; the application build remains on JDK 17.
+          "$JAVA_HOME_25_X64/bin/java" --enable-native-access=ALL-UNNAMED -jar "$apksigner" \
+            verify --verbose --print-certs "$apk" > "$RUNNER_TEMP/apk-verification.txt"
+          expected_cert=${cert//:/}
+          expected_cert=${expected_cert,,}
+          actual_certs=$(sed -n -E '/^(Signer #[0-9]+|V[0-9.]+ Signer:|V[0-9.]+ Hybrid (Classical|PQC) Signer:).*certificate SHA-256 digest: /s/.*certificate SHA-256 digest: //p' "$RUNNER_TEMP/apk-verification.txt" | tr 'A-F' 'a-f')
+          if ! [[ "$expected_cert" =~ ^[0-9a-f]{64}$ ]] || ! grep -Fxq "$expected_cert" <<< "$actual_certs"; then
             echo "::error::O certificado do APK não corresponde ao certificado informado pela Play."
             exit 1
           fi

@@ -215,4 +215,28 @@ class ProvedoresTest {
         servidor.enqueue(resposta(200, "17/09/2026;220;A;USD;5,1;5,2;1;1"))
         assertNull(ptaxBcb().ptaxDoDia("USD", dia))
     }
+
+    @Test fun `corpo chunked de sucesso e limitado durante a leitura`() = runTest {
+        servidor.enqueue(MockResponse.Builder().code(200).chunkedBody("x".repeat(1_048_577), 8192).build())
+        val resposta = fonte<AwesomeApi>().ultima("USD-BRL")
+        assertFailsWith<java.io.IOException> { resposta.body()!!.use { it.bytes() } }
+    }
+
+    @Test fun `corpo chunked de erro e limitado antes do buffering do Retrofit`() = runTest {
+        servidor.enqueue(MockResponse.Builder().code(400).chunkedBody("x".repeat(1_048_577), 8192).build())
+        assertFailsWith<java.io.IOException> { fonte<AwesomeApi>().ultima("USD-BRL") }
+    }
+
+    @Test fun `corpo no limite exato de um MiB e aceito`() = runTest {
+        servidor.enqueue(MockResponse.Builder().code(200).chunkedBody("x".repeat(1_048_576), 8192).build())
+        val resposta = fonte<AwesomeApi>().ultima("USD-BRL")
+        assertEquals(1_048_576, resposta.body()!!.use { it.bytes().size })
+    }
+
+    @Test fun `Awesome com timestamp expirado tenta Yahoo vigente`() = runTest {
+        servidor.enqueue(resposta(200, """{"USDBRL":{"bid":"5.00","timestamp":"1"}}"""))
+        servidor.enqueue(resposta(200, fixture("yahoo-brl-x.json")))
+        assertEquals(FonteSpot.YAHOO_FINANCE, assertNotNull(spotWeb().spotBruta("USD")).fonte)
+        assertEquals(2, servidor.requestCount)
+    }
 }
