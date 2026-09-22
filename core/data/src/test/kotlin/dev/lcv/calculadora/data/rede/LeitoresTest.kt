@@ -66,4 +66,15 @@ class LeitoresTest {
         assertNull(Leitores.cotacaoVendaDolar(assertNotNull(Leitores.olindaBoletins("""{"value":[{"cotacaoCompra":5.1}]}"""))))
         assertNull(Leitores.awesome("""{"USDBRL":{"bid":"abc"}}""", "USD"))
     }
+
+    @Test fun `Yahoo preserva precisao de ponto flutuante da fonte`() {
+        assertDecimal("5.464700222015381", Leitores.yahoo("""{"chart":{"result":[{"meta":{"regularMarketPrice":5.464700222015381}}]}}"""))
+    }
+
+    @Test fun `decimais de API limitam expoente e tamanho sem regras de locale`() {
+        assertDecimal("5.14", Leitores.awesome("""{"USDBRL":{"bid":"5.14e0"}}""", "USD"))
+        for (valor in listOf("1e999999999", "1e-999999999", "9".repeat(41), "5,14", "0", "-1")) {
+            assertNull(Leitores.awesome("""{"USDBRL":{"bid":"$valor"}}""", "USD"), valor)
+        }
+    }
 }

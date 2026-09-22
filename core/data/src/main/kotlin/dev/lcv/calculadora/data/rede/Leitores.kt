@@ -4,7 +4,6 @@
  */
 package dev.lcv.calculadora.data.rede
 
-import dev.lcv.calculadora.calc.parseNumeroLocalizado
 import java.time.Instant
 import java.math.BigDecimal
 import kotlinx.serialization.json.Json
@@ -75,7 +74,10 @@ object Leitores {
     private fun JsonElement.texto(chave: String): String? =
         objeto?.get(chave)?.let { runCatching { it.jsonPrimitive.content }.getOrNull() }
 
-    /** Lê o campo como texto e converte; um número positivo, senão `null`. */
+    /** JSON não é entrada localizada: preserva precisão da fonte, com limites de custo. */
     private fun JsonElement.decimal(chave: String): BigDecimal? =
-        texto(chave)?.let(::parseNumeroLocalizado)?.takeIf { it.signum() > 0 }
+        texto(chave)?.takeIf { it.length <= 40 }?.toBigDecimalOrNull()?.takeIf {
+            it.signum() > 0 && it.precision() <= 30 && it.scale() in -18..18 &&
+                it.precision() - it.scale() <= 12
+        }
 }

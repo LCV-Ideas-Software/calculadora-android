@@ -68,6 +68,12 @@ extrator não fornece. Dependency Verification/locking do Gradle permanece avali
 de hardening: checksum do wrapper e pins de Actions já existentes foram preservados.
 Nenhum SDK de analytics, conta, backend ou coleta funcional foi acrescentado.
 
+A verificação do APK da Play usa Build Tools 37 e o JDK 25 nativo do runner,
+necessário para verificar a assinatura híbrida ML-DSA do Android 17. A compilação
+continua com JDK 17. O hash informado pela Play é normalizado quanto a separadores
+e caixa e comparado aos certificados dos signatários verificados; o certificado
+do carimbo de origem não conta como certificado de assinatura do aplicativo.
+
 ## Fontes oficiais
 
 - [Estado salvo de ViewModel](https://developer.android.com/topic/libraries/architecture/viewmodel/viewmodel-savedstate).

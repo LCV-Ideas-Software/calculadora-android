@@ -22,7 +22,7 @@ android {
         // nativo, sem core library desugaring.
         minSdk = 34
         targetSdk = 37
-        // 1.0.0/code 2 confirmado em production; correções pós-auditoria.
+        // 1.0.0/code 2 enviado à trilha production, ainda em revisão; correções pós-auditoria.
         versionCode = 3
         versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
