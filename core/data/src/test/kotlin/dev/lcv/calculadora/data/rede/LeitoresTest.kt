@@ -34,9 +34,9 @@ class LeitoresTest {
     }
 
     @Test
-    fun `moeda - sem boletim de fechamento usa o ultimo do dia`() {
+    fun `moeda - sem boletim de fechamento nao ha PTAX final`() {
         val corpo = """{"value":[{"cotacaoVenda":1.10,"tipoBoletim":"Abertura"},{"cotacaoVenda":1.20,"tipoBoletim":"Intermediário"}]}"""
-        assertDecimal("1.20", Leitores.cotacaoVendaFechamento(assertNotNull(Leitores.olindaBoletins(corpo))))
+        assertNull(Leitores.cotacaoVendaFechamento(assertNotNull(Leitores.olindaBoletins(corpo))))
     }
 
     @Test

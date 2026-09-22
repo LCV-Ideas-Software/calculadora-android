@@ -10,6 +10,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -52,6 +54,7 @@ import dev.lcv.calculadora.calc.CenarioCompraEmReais
 import dev.lcv.calculadora.calc.CenarioCusto
 import dev.lcv.calculadora.calc.CustoConversao
 import dev.lcv.calculadora.calc.ErroEntrada
+import dev.lcv.calculadora.calc.ContextoOperacional
 import dev.lcv.calculadora.calc.FonteSpot
 import dev.lcv.calculadora.calc.Formatacao
 import dev.lcv.calculadora.calc.Modalidade
@@ -106,6 +109,7 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
         }
 
         CampoEmCaixa(
+            mostrarRotulo = false,
             rotulo = if (emReais) {
                 stringResource(R.string.campo_valor_reais)
             } else {
@@ -115,6 +119,7 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
             CampoNumerico(
                 estado.valor,
                 viewModel::mudarValor,
+                rotulo = if (emReais) stringResource(R.string.campo_valor_reais) else stringResource(R.string.campo_valor, estado.moeda),
                 modifier = Modifier.testTag(Marcas.VALOR),
                 exemplo = stringResource(R.string.exemplo_valor),
             )
@@ -123,22 +128,26 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
         if (emReais) {
             CampoEmCaixa(
                 rotulo = stringResource(R.string.campo_fatura),
+                mostrarRotulo = false,
                 dica = stringResource(R.string.dica_fatura),
             ) {
                 CampoNumerico(
                     estado.valorFatura,
                     viewModel::mudarValorFatura,
+                    rotulo = stringResource(R.string.campo_fatura),
                     exemplo = stringResource(R.string.exemplo_fatura),
                 )
             }
         } else {
             CampoEmCaixa(
                 rotulo = stringResource(R.string.campo_vet_saldo),
+                mostrarRotulo = false,
                 dica = stringResource(R.string.dica_vet_saldo),
             ) {
                 CampoNumerico(
                     estado.vetSaldo,
                     viewModel::mudarVetSaldo,
+                    rotulo = stringResource(R.string.campo_vet_saldo),
                     exemplo = stringResource(R.string.exemplo_vet),
                 )
             }
@@ -162,6 +171,9 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
                     when (erro) {
                         ErroEntrada.VALOR_INVALIDO -> R.string.erro_valor_invalido
                         ErroEntrada.DATA_AUSENTE -> R.string.erro_data_ausente
+                        ErroEntrada.DATA_FUTURA -> R.string.erro_data_futura
+                        ErroEntrada.PARAMETRO_INVALIDO -> R.string.erro_parametro_invalido
+                        ErroEntrada.OPCIONAL_INVALIDO -> R.string.erro_opcional_invalido
                     },
                 ),
                 fundo = Tema.cores.destaqueSaldo,
@@ -203,13 +215,13 @@ private fun CaixaDcc(marcado: Boolean, aoMudar: (Boolean) -> Unit) {
     ) {
         Row(
             modifier = Modifier
-                .clickable { aoMudar(!marcado) }
+                .toggleable(value = marcado, role = Role.Checkbox, onValueChange = aoMudar)
                 .padding(horizontal = 10.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Checkbox(
                 checked = marcado,
-                onCheckedChange = aoMudar,
+                onCheckedChange = null,
                 colors = CheckboxDefaults.colors(checkedColor = Tema.cores.foco),
             )
             Text(
@@ -268,6 +280,11 @@ private fun SeletorDeData(data: LocalDate, aoMudar: (LocalDate) -> Unit) {
         // usam o mesmo fuso para não deslocar o dia.
         val estadoDoSeletor = rememberDatePickerState(
             initialSelectedDateMillis = data.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
+            selectableDates = object : androidx.compose.material3.SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                    Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate() <= LocalDate.now(ContextoOperacional.FUSO_BRASILIA)
+                override fun isSelectableYear(year: Int): Boolean = year <= LocalDate.now(ContextoOperacional.FUSO_BRASILIA).year
+            },
         )
         DatePickerDialog(
             onDismissRequest = { aberto = false },
@@ -346,8 +363,7 @@ private fun ParametrosRecolhiveis(estado: EstadoTela, viewModel: SimulacaoViewMo
 @Composable
 private fun ParametroNumerico(rotulo: String, valor: String, aoMudar: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(rotulo, fontSize = 10.sp, color = Tema.cores.textoApagado)
-        CampoNumerico(valor, aoMudar, exemplo = stringResource(R.string.parametro_automatico))
+        CampoNumerico(valor, aoMudar, rotulo = rotulo, exemplo = stringResource(R.string.parametro_automatico))
     }
 }
 
@@ -419,8 +435,10 @@ private fun Resultado(resultado: ResultadoSimulacao, aoCompartilhar: () -> Unit)
             }
         }
 
+        Text(stringResource(R.string.aviso_comparacao_temporal), color = Tema.cores.textoFraco, fontSize = 12.sp)
         PainelParametros(simulacao.entrada.parametros)
-        (simulacao.sensibilidadeCartao ?: simulacao.sensibilidadeGlobal)?.let { PainelSensibilidade(it) }
+        simulacao.sensibilidadeCartao?.let { PainelSensibilidade(it, stringResource(R.string.cartao_credito)) }
+        simulacao.sensibilidadeGlobal?.let { PainelSensibilidade(it, stringResource(R.string.cartao_global)) }
         resultado.backtest?.let { PainelBacktest(it, simulacao) }
 
         OutlinedButton(
@@ -453,7 +471,12 @@ private fun CartaoComparacao(
                     stringResource(rotuloDaFonte(modalidade.fonteSpot)),
                     apagado = true,
                 )
-                Custo(modalidade.custo, moeda)
+                modalidade.dataCotacao?.let { Linha(stringResource(R.string.data_ptax), it.format(DATA_BR)) }
+                modalidade.instanteCotacao?.let {
+                    Linha(stringResource(R.string.instante_spot), it.atZone(ContextoOperacional.FUSO_BRASILIA)
+                        .format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+                }
+                Custo(modalidade.custo)
                 Indicadores(modalidade)
             }
 
@@ -491,11 +514,11 @@ private fun CabecalhoCartao(icone: String, titulo: String, vencedor: Boolean) {
 }
 
 @Composable
-private fun Custo(custo: CustoConversao, moeda: String) {
+private fun Custo(custo: CustoConversao) {
     Linha(
         stringResource(R.string.rotulo_spread),
         Formatacao.percentual(custo.spread) +
-            " (" + Moedas.simbolo(moeda) + " " + Formatacao.reais(custo.valorSpread) + ")",
+            " (R$ " + Formatacao.reais(custo.valorSpread) + ")",
     )
     Linha(
         stringResource(R.string.rotulo_iof),
@@ -541,9 +564,9 @@ private fun PainelParametros(parametros: Parametros) {
 }
 
 @Composable
-private fun PainelSensibilidade(bandas: BandasSensibilidade) {
+private fun PainelSensibilidade(bandas: BandasSensibilidade, modalidade: String) {
     CartaoVidro(tinta = Tema.cores.destaqueCartao) {
-        TituloPainel(stringResource(R.string.sensibilidade_titulo), Tema.cores.marcaArdosia)
+        TituloPainel(stringResource(R.string.sensibilidade_titulo) + " — " + modalidade, Tema.cores.marcaArdosia)
         BandaSensibilidade(stringResource(R.string.banda_otimista), bandas.otimista)
         BandaSensibilidade(stringResource(R.string.banda_base), bandas.base)
         BandaSensibilidade(stringResource(R.string.banda_pessimista), bandas.pessimista)

@@ -15,12 +15,18 @@ import dev.lcv.calculadora.data.backtest.BacktestRepository
 import dev.lcv.calculadora.data.backtest.ResumoBacktest
 import dev.lcv.calculadora.data.cotacoes.CotacoesRepository
 import java.time.Clock
+import java.time.LocalDate
+import java.time.Instant
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /** A simulação e, quando houve observação nova, o resumo do backtest (como o produto web). */
 data class ResultadoSimulacao(
     val simulacao: Simulacao,
     val backtest: ResumoBacktest?,
+    val instanteSpot: Instant? = null,
 )
 
 /**
@@ -33,27 +39,29 @@ class Simulador @Inject constructor(
     private val backtest: BacktestRepository,
     private val relogio: Clock,
 ) {
-    suspend fun simular(entrada: EntradaSimulacao): ResultadoSimulacao {
+    suspend fun simular(entrada: EntradaSimulacao): ResultadoSimulacao = coroutineScope {
         val contexto = ContextoOperacional.em(relogio.instant())
-        val ptax = cotacoes.ptax(entrada.moeda, entrada.dataCompra)
         val temContaGlobal = Moedas.temContaGlobal(entrada.moeda)
-        val spotBruta = if (temContaGlobal) cotacoes.spotBruta(entrada.moeda) else null
-        val ultimoSpot = if (temContaGlobal) cotacoes.ultimoSpotCalibrado(entrada.moeda) else null
+        val consultaPtax = async { withTimeoutOrNull(15_000) { cotacoes.ptax(entrada.moeda, entrada.dataCompra) } }
+        val consultaSpot = async { if (temContaGlobal) withTimeoutOrNull(10_000) { cotacoes.spotBruta(entrada.moeda) } else null }
+        val ptax = consultaPtax.await()
+        val spotBruta = consultaSpot.await()
+        val salvo = if (temContaGlobal) cotacoes.ultimoSpot(entrada.moeda) else null
+        val ultimoSpot = salvo?.taxaCalibrada
 
-        val simulacao = MotorCalculo.simular(entrada, contexto, ptax, spotBruta, ultimoSpot)
+        val simulacao = MotorCalculo.simular(entrada, contexto, ptax, spotBruta, ultimoSpot, salvo?.obtidoEm?.let(Instant::ofEpochMilli))
 
         val global = simulacao.global as? Modalidade.Suportada
         if (global != null && (global.fonteSpot == FonteSpot.AWESOME_API || global.fonteSpot == FonteSpot.YAHOO_FINANCE)) {
-            cotacoes.guardarUltimoSpotCalibrado(entrada.moeda, global.taxaUtilizada)
+            cotacoes.guardarUltimoSpotCalibrado(entrada.moeda, global.taxaUtilizada, spotBruta?.instante ?: relogio.instant())
         }
 
-        // Só uma spot de verdade (de fonte ou a última salva) é uma previsão a
-        // conferir contra a PTAX. Na contingência, prevista e observada são o
-        // mesmo número: o "erro" zero não mede calibragem e só maquiaria o MAPE
-        // — o produto web grava esse zero; porte, não clone.
+        // Comparação diária, não avaliação de previsão: só fontes com instante
+        // conhecido no mesmo dia da PTAX final. Contingências não são amostras.
         val erro = simulacao.erroBacktest
         val cartao = simulacao.cartao as? Modalidade.Suportada
-        val previsaoReal = global?.fonteSpot != null && global.fonteSpot != FonteSpot.PTAX_CONTINGENCIA
+        val diaSpot = spotBruta?.instante?.let { LocalDate.ofInstant(it, ContextoOperacional.FUSO_BRASILIA) }
+        val previsaoReal = diaSpot != null && diaSpot == ptax?.data && diaSpot == entrada.dataCompra
         val resumo = if (erro != null && global != null && cartao != null && previsaoReal) {
             backtest.registrar(
                 moeda = entrada.moeda,
@@ -67,6 +75,10 @@ class Simulador @Inject constructor(
         } else {
             null
         }
-        return ResultadoSimulacao(simulacao, resumo)
+        ResultadoSimulacao(simulacao, resumo, when (global?.fonteSpot) {
+            FonteSpot.AWESOME_API, FonteSpot.YAHOO_FINANCE -> spotBruta?.instante
+            FonteSpot.ULTIMO_SPOT_SALVO -> salvo?.obtidoEm?.let(Instant::ofEpochMilli)
+            else -> null
+        })
     }
 }

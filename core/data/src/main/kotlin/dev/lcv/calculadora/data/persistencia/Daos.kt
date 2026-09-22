@@ -31,7 +31,7 @@ interface UltimoSpotDao {
 
 @Dao
 interface BacktestDao {
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun inserir(observacao: ObservacaoBacktestEntity)
 
     /** Observações desde [desde] (inclusive), mais recentes primeiro, no máximo [limite]. */

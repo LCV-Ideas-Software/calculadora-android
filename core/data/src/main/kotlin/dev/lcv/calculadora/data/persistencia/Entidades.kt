@@ -31,7 +31,7 @@ data class UltimoSpotEntity(
 )
 
 /** Uma observação do backtest: spot calibrado previsto contra a PTAX observada. */
-@Entity(tableName = "backtest_observacao", indices = [Index("criadoEm")])
+@Entity(tableName = "backtest_observacao", indices = [Index("criadoEm"), Index(value = ["moeda", "dataCompra"], unique = true)])
 data class ObservacaoBacktestEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     /** Instante do registro, em milissegundos desde a época. */

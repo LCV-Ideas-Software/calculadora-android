@@ -18,6 +18,8 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.ResponseBody
 import retrofit2.Response
 
@@ -65,7 +67,7 @@ class ProvedorPtaxBcb @Inject constructor(
 
     private suspend fun peloCsv(moeda: String, data: LocalDate): BigDecimal? {
         val corpo = fechamento.csv(data.format(FORMATO_CSV)).corpoOuNull() ?: return null
-        return CotacaoCsv.taxaVenda(corpo, moeda)
+        return CotacaoCsv.taxaVenda(corpo, moeda, data)
     }
 
     private sealed interface Olinda {
@@ -89,19 +91,34 @@ class ProvedorPtaxBcb @Inject constructor(
 class ProvedorSpotWeb @Inject constructor(
     private val awesome: AwesomeApi,
     private val yahoo: YahooFinance,
+    private val relogio: java.time.Clock = java.time.Clock.systemUTC(),
 ) : ProvedorSpot {
     override suspend fun spotBruta(moeda: String): CotacaoSpotBruta? {
-        semFalha { awesome.ultima("$moeda-BRL").corpoOuNull()?.let { Leitores.awesome(it, moeda) } }
-            ?.let { return CotacaoSpotBruta(it, FonteSpot.AWESOME_API) }
+        semFalha { awesome.ultima("$moeda-BRL").corpoOuNull()?.let { corpo ->
+            val instante = Leitores.instanteAwesome(corpo, moeda)?.takeIf(::vigente) ?: return@let null
+            Leitores.awesome(corpo, moeda)?.let { CotacaoSpotBruta(it, FonteSpot.AWESOME_API, instante) }
+        } }?.let { return it }
         val simbolo = if (moeda == "USD") "BRL=X" else "${moeda}BRL=X"
-        return semFalha { yahoo.grafico(simbolo).corpoOuNull()?.let(Leitores::yahoo) }
-            ?.let { CotacaoSpotBruta(it, FonteSpot.YAHOO_FINANCE) }
+        return semFalha { yahoo.grafico(simbolo).corpoOuNull()?.let { corpo ->
+            val instante = Leitores.instanteYahoo(corpo)?.takeIf(::vigente) ?: return@let null
+            Leitores.yahoo(corpo)?.let { CotacaoSpotBruta(it, FonteSpot.YAHOO_FINANCE, instante) }
+        } }
+    }
+
+    private fun vigente(instante: java.time.Instant): Boolean {
+        val idade = java.time.Duration.between(instante, relogio.instant())
+        return !idade.isNegative && idade <= CotacoesRepository.IDADE_MAXIMA_SPOT
     }
 }
 
 /** O corpo de uma resposta 2xx, ou `null` para qualquer outra (cujo corpo de erro é fechado). */
-internal fun Response<ResponseBody>.corpoOuNull(): String? =
-    if (isSuccessful) body()?.use { it.string() } else { errorBody()?.close(); null }
+internal suspend fun Response<ResponseBody>.corpoOuNull(): String? = withContext(Dispatchers.IO) {
+    if (isSuccessful) body()?.use {
+        val limite = 1_048_576L
+        val fonte = it.source()
+        if (it.contentLength() > limite || fonte.request(limite + 1)) null else fonte.readUtf8()
+    } else { errorBody()?.close(); null }
+}
 
 /**
  * Como `runCatching`, mas o cancelamento da corrotina passa adiante: cancelar

@@ -4,6 +4,8 @@
  */
 package dev.lcv.calculadora.data.rede
 
+import dev.lcv.calculadora.calc.parseNumeroLocalizado
+import java.time.Instant
 import java.math.BigDecimal
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -34,7 +36,7 @@ object Leitores {
 
     /**
      * `cotacaoVenda` do boletim `Fechamento` (ou `Fechamento PTAX`); na sua
-     * ausência, o último boletim do dia, como no produto web.
+     * ausência, não há taxa final para persistir.
      */
     fun cotacaoVendaFechamento(boletins: List<JsonElement>): BigDecimal? {
         if (boletins.isEmpty()) return null
@@ -42,7 +44,7 @@ object Leitores {
             val tipo = b.texto("tipoBoletim")
             tipo == "Fechamento" || tipo == "Fechamento PTAX"
         }
-        return (fechamento ?: boletins.last()).decimal("cotacaoVenda")
+        return fechamento?.decimal("cotacaoVenda")
     }
 
     /** `bid` do par `<MOEDA>BRL`. */
@@ -54,6 +56,17 @@ object Leitores {
             ?.let { runCatching { it.jsonArray.firstOrNull() }.getOrNull() }
             ?.objeto?.get("meta")?.decimal("regularMarketPrice")
 
+    fun instanteAwesome(corpo: String, moeda: String): Instant? =
+        parse(corpo)?.objeto?.get("${moeda}BRL")?.instante("timestamp")
+
+    fun instanteYahoo(corpo: String): Instant? =
+        parse(corpo)?.objeto?.get("chart")?.objeto?.get("result")
+            ?.let { runCatching { it.jsonArray.firstOrNull() }.getOrNull() }
+            ?.objeto?.get("meta")?.instante("regularMarketTime")
+
+    private fun JsonElement.instante(chave: String): Instant? =
+        texto(chave)?.toLongOrNull()?.let { runCatching { Instant.ofEpochSecond(it) }.getOrNull() }
+
     private fun parse(corpo: String): JsonElement? = runCatching { json.parseToJsonElement(corpo) }.getOrNull()
 
     private val JsonElement.objeto: JsonObject?
@@ -64,5 +77,5 @@ object Leitores {
 
     /** Lê o campo como texto e converte; um número positivo, senão `null`. */
     private fun JsonElement.decimal(chave: String): BigDecimal? =
-        texto(chave)?.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+        texto(chave)?.let(::parseNumeroLocalizado)?.takeIf { it.signum() > 0 }
 }

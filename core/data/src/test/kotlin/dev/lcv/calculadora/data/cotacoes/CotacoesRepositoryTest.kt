@@ -22,7 +22,7 @@ import kotlin.test.assertNull
 import kotlinx.coroutines.test.runTest
 
 class CotacoesRepositoryTest {
-    private val relogio = RelogioFixo(Instant.parse("2026-09-18T15:00:00Z"))
+    private val relogio = RelogioFixo(Instant.parse("2026-09-21T15:00:00Z"))
     private val ptaxCache = PtaxCacheEmMemoria()
     private val ultimoSpot = UltimoSpotEmMemoria()
     private val quinta = LocalDate.of(2026, 9, 17)
@@ -123,5 +123,21 @@ class CotacoesRepositoryTest {
         repo.guardarUltimoSpotCalibrado("USD", dec("5.140006"))
         assertDecimal("5.140006", repo.ultimoSpotCalibrado("USD"))
         assertEquals(relogio.millis(), ultimoSpot.linhas["USD"]?.obtidoEm)
+    }
+
+    @Test fun `spot salva expira em 24 horas e rejeita instante futuro`() = runTest {
+        val repo = repositorio()
+        repo.guardarUltimoSpotCalibrado("USD", dec("5"))
+        relogio.recuar(Duration.ofSeconds(1))
+        assertNull(repo.ultimoSpotCalibrado("USD"))
+        relogio.avancar(Duration.ofHours(24).plusSeconds(1))
+        assertNotNull(repo.ultimoSpotCalibrado("USD"))
+        relogio.avancar(Duration.ofMillis(1))
+        assertNull(repo.ultimoSpotCalibrado("USD"))
+    }
+
+    @Test fun `resposta HTTP nova com timestamp antigo nao e spot recente`() = runTest {
+        spotDaFonte = spotDaFonte!!.copy(instante = relogio.instant().minus(Duration.ofHours(25)))
+        assertNull(repositorio().spotBruta("USD"))
     }
 }

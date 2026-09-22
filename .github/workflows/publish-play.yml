@@ -56,11 +56,19 @@ on:
         options:
           - completed
           - draft
+      changes_in_review_behavior:
+        description: Preserve an ongoing review or explicitly replace it with this submission
+        required: true
+        default: ERROR_IF_IN_REVIEW
+        type: choice
+        options:
+          - ERROR_IF_IN_REVIEW
+          - CANCEL_IN_REVIEW_AND_SUBMIT
 
 permissions: {}
 
 concurrency:
-  group: publish-play-${{ github.ref }}
+  group: play-release
   cancel-in-progress: false
 
 jobs:
@@ -213,6 +221,7 @@ jobs:
           NOTES_FILE: play/release-notes/pt-BR.txt
           NOTES_LANGUAGE: pt-BR
           RELEASE_STATUS: ${{ inputs.release_status }}
+          REVIEW_BEHAVIOR: ${{ inputs.changes_in_review_behavior }}
         run: |
           set -euo pipefail
           # `--fail-with-body` escreve o corpo do erro na saída padrão e sai 22.
@@ -227,13 +236,13 @@ jobs:
             local rotulo=$1; shift
             local corpo status
             corpo=$(mktemp)
-            status=$(curl -sS -o "$corpo" -w '%{http_code}' "$@") || {
+            status=$(curl -sS --connect-timeout 10 --max-time 120 -o "$corpo" -w '%{http_code}' "$@") || {
               echo "::error::$rotulo: curl falhou. Resposta do Google Play:" >&2
               sed 's/^/  /' "$corpo" >&2
               rm -f "$corpo"
               return 1
             }
-            if [ "$status" -ge 400 ]; then
+            if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
               echo "::error::$rotulo: o Google Play respondeu HTTP $status." >&2
               sed 's/^/  /' "$corpo" >&2
               rm -f "$corpo"
@@ -311,13 +320,13 @@ jobs:
             -H "Authorization: Bearer $TOKEN" \
             -H "x-goog-user-project: $QUOTA_PROJECT" \
             -H 'Content-Type: application/json' -d '{}' \
-            "$api/$PACKAGE/edits/$edit:commit" >/dev/null
+            "$api/$PACKAGE/edits/$edit:commit?changesNotSentForReview=false&changesInReviewBehavior=$REVIEW_BEHAVIOR" >/dev/null
 
           # The edit is committed; there is nothing left to discard.
           trap - EXIT
 
           {
-            echo "### Published to the \`$TRACK\` track"
+            echo "### Envio confirmado para a trilha \`$TRACK\`"
             echo ""
             echo "- package: \`$PACKAGE\`"
             echo "- version code: \`$version\`"
@@ -353,6 +362,29 @@ jobs:
             exit 0
           fi
 
+          read_edit=$(play "abrir verificação da trilha" -X POST \
+            -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $QUOTA_PROJECT" \
+            -H 'Content-Type: application/json' -d '{}' "$api/$PACKAGE/edits" | jq -er '.id')
+          trap 'curl -sS --max-time 30 -X DELETE -H "Authorization: Bearer $TOKEN" -H "x-goog-user-project: $QUOTA_PROJECT" "$api/$PACKAGE/edits/$read_edit" >/dev/null' EXIT
+          served=$(play "verificar production" -H "Authorization: Bearer $TOKEN" \
+            -H "x-goog-user-project: $QUOTA_PROJECT" "$api/$PACKAGE/edits/$read_edit/tracks/production")
+          printf '%s' "$served" | jq -e --arg code "$version" \
+            'any(.releases[]?; .status == "completed" and ((.versionCodes // []) | index($code)) != null)' >/dev/null
+          play "encerrar verificação" -X DELETE -H "Authorization: Bearer $TOKEN" \
+            -H "x-goog-user-project: $QUOTA_PROJECT" "$api/$PACKAGE/edits/$read_edit" >/dev/null
+          trap - EXIT
+
+          lifecycle=$(play "consultar revisão/publicação" -H "Authorization: Bearer $TOKEN" \
+            -H "x-goog-user-project: $QUOTA_PROJECT" "$api/$PACKAGE/tracks/production/releases")
+          state=$(printf '%s' "$lifecycle" | jq -r --argjson code "$version" \
+            '[.releases[]? | select(any(.activeArtifacts[]?; .versionCode == $code)) | .releaseLifecycleState][0] // "UNKNOWN"')
+          echo "- Estado da revisão/publicação: \`$state\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$state" != RELEASE_LIFECYCLE_STATE_PUBLISHED ]; then
+            echo "A versão foi enviada à Play, mas ainda não está publicada para usuários. Acompanhe Visão geral da publicação; registre a Release somente após aprovação/publicação." >> "$GITHUB_STEP_SUMMARY"
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           # Production only: fetch the universal APK Google Play generated and
           # signed with the app signing key. Play processes the bundle
           # asynchronously and answers 404 or 409 until it is done, so poll.
@@ -382,9 +414,21 @@ jobs:
           apk="$RUNNER_TEMP/release/$PACKAGE-$VERSION_NAME.apk"
           play "baixar o APK universal" -H "Authorization: Bearer $TOKEN" \
             -H "x-goog-user-project: $QUOTA_PROJECT" \
-            -o "$apk" "$gen/downloads/$download_id:download?alt=media"
+            "$gen/downloads/$download_id:download?alt=media" > "$apk"
           if [ ! -s "$apk" ]; then
             echo "::error::The universal APK download for version code $version is empty."
+            exit 1
+          fi
+          aapt=$(find "$ANDROID_HOME/build-tools" -mindepth 2 -maxdepth 2 -type f -name aapt | sort -V | tail -1)
+          apksigner=$(dirname "$aapt")/apksigner
+          metadata=$("$aapt" dump badging "$apk" | sed -n '1p')
+          if [[ "$metadata" != *"name='$PACKAGE'"* || "$metadata" != *"versionCode='$version'"* || "$metadata" != *"versionName='$VERSION_NAME'"* ]]; then
+            echo "::error::O pacote/versão do APK não corresponde à publicação solicitada."
+            exit 1
+          fi
+          actual_cert=$("$apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
+          if [ -z "$actual_cert" ] || [ "${actual_cert,,}" != "${cert,,}" ]; then
+            echo "::error::O certificado do APK não corresponde ao certificado informado pela Play."
             exit 1
           fi
           (cd "$RUNNER_TEMP/release" && sha256sum "$(basename "$apk")" > SHA256SUMS)
@@ -467,6 +511,16 @@ jobs:
             echo "gh attestation verify $(basename "$apk") --repo $GITHUB_REPOSITORY"
             echo '```'
           } > "$RUNNER_TEMP/notes.md"
+          if git ls-remote --exit-code --tags "https://github.com/$GITHUB_REPOSITORY.git" "refs/tags/$TAG" > "$RUNNER_TEMP/existing-tag"; then
+            echo "::error::A tag $TAG já existe; não reutilizar proveniência sem conferir a publicação existente."
+            exit 1
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "::error::Não foi possível verificar a existência da tag (git: $status)."
+              exit 1
+            fi
+          fi
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --draft --generate-notes --notes-file "$RUNNER_TEMP/notes.md" \
             "$apk" release/SHA256SUMS

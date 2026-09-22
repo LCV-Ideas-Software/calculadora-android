@@ -22,11 +22,9 @@ android {
         // nativo, sem core library desugaring.
         minSdk = 34
         targetSdk = 37
-        // O `versionCode` 1 foi consumido pela publicação na trilha `internal`
-        // de 17/09/2026 (run 35272361221); o Google Play recusa um código já
-        // usado, então a primeira versão pública sobe como 2.
-        versionCode = 2
-        versionName = "1.0.0"
+        // 1.0.0/code 2 confirmado em production; correções pós-auditoria.
+        versionCode = 3
+        versionName = "1.0.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -45,6 +43,15 @@ android {
     }
 
     testOptions {
+        managedDevices {
+            localDevices {
+                create("pixel2api34") {
+                    device = "Pixel 2"
+                    apiLevel = 34
+                    systemImageSource = "aosp"
+                }
+            }
+        }
         unitTests.all { it.useJUnitPlatform() }
     }
 

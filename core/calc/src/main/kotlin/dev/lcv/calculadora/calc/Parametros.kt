@@ -25,6 +25,10 @@ data class Parametros(
     val backtestMapeAtencaoPercent: BigDecimal = BACKTEST_MAPE_ATENCAO_PERCENT_PADRAO,
 ) {
     init {
+        require(listOf(iofCartao, iofGlobal, spreadCartao, spreadGlobalAberto, spreadGlobalFechado)
+            .all { it >= BigDecimal.ZERO && it <= BigDecimal.ONE }) {
+            "IOF e spreads devem estar entre 0 e 100%."
+        }
         require(fatorCalibragemGlobal.signum() > 0) { "O fator de calibragem deve ser positivo." }
     }
 

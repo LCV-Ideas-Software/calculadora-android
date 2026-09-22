@@ -52,7 +52,7 @@ class SimulacaoViewModelTest {
     private val despachante = StandardTestDispatcher()
 
     private var ptaxDaFonte: BigDecimal? = BigDecimal("5.4000")
-    private var spotDaFonte: CotacaoSpotBruta? = CotacaoSpotBruta(BigDecimal("5.3800"), FonteSpot.AWESOME_API)
+    private var spotDaFonte: CotacaoSpotBruta? = CotacaoSpotBruta(BigDecimal("5.3800"), FonteSpot.AWESOME_API, relogio.instant())
     private var explodir = false
 
     private val ptaxCache = PtaxCacheEmMemoria()

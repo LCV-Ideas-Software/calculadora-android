@@ -41,6 +41,8 @@ class CotacoesRepository @Inject constructor(
      * cada fonte e alimentado por cada acerto; a PTAX é diária e não expira.
      */
     suspend fun ptax(moeda: String, dataCompra: LocalDate): CotacaoPtax? {
+        val hoje = LocalDate.ofInstant(relogio.instant(), dev.lcv.calculadora.calc.ContextoOperacional.FUSO_BRASILIA)
+        if (dataCompra > hoje) return null
         for (recuo in 0 until RECUO_MAXIMO_DIAS) {
             val dia = dataCompra.minusDays(recuo.toLong())
             ptaxCache.buscar(moeda, dia)?.let { return CotacaoPtax(it.taxa, dia) }
@@ -62,20 +64,30 @@ class CotacoesRepository @Inject constructor(
             // Idade negativa = relógio de parede ajustado para trás: o memo não
             // pode congelar até o relógio alcançar `quando`; conta como expirado.
             val idade = Duration.between(quando, agora)
-            if (!idade.isNegative && idade < JANELA_MEMO) return spot
+            if (!idade.isNegative && idade < JANELA_MEMO && vigente(spot.instante ?: quando, agora)) return spot
         }
         val spot = provedorSpot.spotBruta(moeda) ?: return null
+        if (!vigente(spot.instante ?: agora, agora)) return null
         memoSpot[moeda] = agora to spot
         spot
     }
 
-    suspend fun ultimoSpotCalibrado(moeda: String): BigDecimal? = ultimoSpotDao.buscar(moeda)?.taxaCalibrada
+    suspend fun ultimoSpot(moeda: String): UltimoSpotEntity? = ultimoSpotDao.buscar(moeda)
+        ?.takeIf { vigente(Instant.ofEpochMilli(it.obtidoEm), relogio.instant()) }
 
-    suspend fun guardarUltimoSpotCalibrado(moeda: String, taxaCalibrada: BigDecimal) {
-        ultimoSpotDao.guardar(UltimoSpotEntity(moeda, taxaCalibrada, relogio.millis()))
+    suspend fun ultimoSpotCalibrado(moeda: String): BigDecimal? = ultimoSpot(moeda)?.taxaCalibrada
+
+    private fun vigente(instante: Instant, agora: Instant): Boolean {
+        val idade = Duration.between(instante, agora)
+        return !idade.isNegative && idade <= IDADE_MAXIMA_SPOT
+    }
+
+    suspend fun guardarUltimoSpotCalibrado(moeda: String, taxaCalibrada: BigDecimal, instante: Instant = relogio.instant()) {
+        ultimoSpotDao.guardar(UltimoSpotEntity(moeda, taxaCalibrada, instante.toEpochMilli()))
     }
 
     companion object {
+        val IDADE_MAXIMA_SPOT: Duration = Duration.ofHours(24)
         const val RECUO_MAXIMO_DIAS = 7
         val JANELA_MEMO: Duration = Duration.ofSeconds(60)
     }

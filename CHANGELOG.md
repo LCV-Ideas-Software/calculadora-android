@@ -4,6 +4,31 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+## [1.0.1] — 21/09/2026
+
+### Fixed
+
+- Cancel superseded calculations and reject stale responses after any input edit;
+  restore primitive form inputs through SavedStateHandle after process recreation.
+- Bound decimal input, validate optional fields and percentage ranges, and reject
+  future purchase dates before calculation. Reject nonpositive or wrong-date CSV rates.
+- Cache only closing PTAX; expire spot quotes after 24 hours using source timestamps.
+  Compare matching quote dates and keep at most one sample per currency/day. Explicit
+  Room 1→2 migration discards only untrustworthy derived caches and old observations.
+- Correct BRL spread labels, expose quote dates/sources, label both sensitivity panels,
+  associate editable fields with accessible labels, and improve text contrast.
+- Bound HTTP bodies and query durations; exclude derived local data from backup.
+- Repair APK download output; verify actual APK package/version/signing certificate;
+  bind release tags to the checked-out commit and require Play publication lifecycle
+  PUBLISHED before recording a GitHub Release. Preserve ongoing review by default.
+- Add regression, migration and Android 14 CI coverage plus debug/release lint/build.
+
+Details: [CALANDR-24](https://linear.app/lcv-ideas-software/issue/CALANDR-24),
+[correction contract](docs/correcoes-v1.0.1.md). This entry describes the version;
+Google review/publication remains observable through its API, not inferred from this file.
+
+### Maintenance included since 1.0.0
+
 ### Changed
 
 - Complete the third-party inventory for the Actions this repository's workflows
