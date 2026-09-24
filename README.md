@@ -73,18 +73,17 @@ Decisões de produto vigentes:
 
 O arquivo inerte
 [`quality/code-quality-probe.js`](quality/code-quality-probe.js) existe somente
-para fornecer ao GitHub Code Quality uma linguagem suportada enquanto
-`java-kotlin` não estiver na configuração do CodeQL. Ele não é carregado pela
-página, não integra o aplicativo e não representa cobertura de Kotlin. É a
-única fonte JavaScript do repositório e, portanto, o que sustenta a análise
-hoje. A troca é acrescentar `java-kotlin` à configuração e só então remover o
-placeholder — nessa ordem, para que o repositório não fique sem linguagem
-analisável no intervalo —, mas ela **não está liberada**: o CodeQL não suporta
-o Kotlin 2.4.20 deste projeto, e por isso `java-kotlin` foi retirado do Default
-setup em 18/09/2026. A pré-condição de existir Kotlin no `main` está satisfeita
-desde a mesma data; o que falta é do CodeQL. Rastreada pela
-[CALANDR-14](https://linear.app/lcv-ideas-software/issue/CALANDR-14), com
-reavaliação em 25/09/2026.
+para fornecer ao GitHub Code Quality uma linguagem que a análise por regras
+dele cobre. Ele não é carregado pela página, não integra o aplicativo e não
+representa cobertura de Kotlin. O Kotlin é coberto pelo code scanning do
+CodeQL: desde 24/09/2026, o Default setup analisa `java-kotlin`, compilado com
+o *autobuild*, no CodeQL 2.27.1, a primeira versão que suporta o Kotlin 2.4.20
+deste projeto. O Code Quality não o cobre: a análise por regras dele suporta
+C#, Go, Java, JavaScript, Python, Ruby e TypeScript, e o modo `none` com que
+ele compila não extrai Kotlin. Por isso o placeholder continua sendo a única
+fonte que o Code Quality analisa aqui e, por decisão do operador em
+24/09/2026, fica até o Code Quality cobrir Kotlin. Rastreado pela
+[CALANDR-14](https://linear.app/lcv-ideas-software/issue/CALANDR-14).
 
 ## Tracking canônico
 
@@ -105,10 +104,11 @@ convertidos em massa.
   cada push para `main`: validação do Gradle Wrapper, `assembleDebug`,
   `lintDebug` e testes unitários — inclusive os do motor `:core:calc`, que
   rodam na JVM — com o mesmo JDK usado na publicação.
-- CodeQL usa o Default setup nativo do GitHub para analisar GitHub Actions e
-  o placeholder JavaScript inerte. Code Quality também usa a configuração nativa.
-  A linguagem `java-kotlin` continua fora porque o CodeQL não suporta o Kotlin
-  2.4.20 deste projeto, não porque falte Kotlin — ver CALANDR-14.
+- CodeQL usa o Default setup nativo do GitHub para analisar GitHub Actions, o
+  Kotlin (`java-kotlin`, compilado com o *autobuild* do CodeQL) e o placeholder
+  JavaScript inerte. Code Quality também usa a configuração nativa; como a
+  análise por regras dele não cobre Kotlin, ele analisa só o placeholder — ver
+  CALANDR-14.
 - Dependency Review avalia as alterações de dependências nos pull requests.
 - Zizmor audita a segurança dos workflows e publica SARIF.
 - OpenSSF Scorecard observa a postura de supply chain do branch principal e

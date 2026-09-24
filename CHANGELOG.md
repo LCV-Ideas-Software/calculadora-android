@@ -4,6 +4,21 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- Record that CodeQL now analyzes the Kotlin code (CALANDR-14, step 1). On
+  24/09/2026 the Default setup added `java-kotlin`, built with autobuild, on
+  CodeQL 2.27.1, the first version that supports Kotlin 2.4.20; the first
+  analysis on `main` (`95d8506`) finished green with no alerts. The `README.md`
+  and section 11 of the specification still said `java-kotlin` stayed out of
+  CodeQL, and now say it is in; section 11 moves item 2 to the resolved list.
+  They also correct why `quality/code-quality-probe.js` stays, and so does the
+  placeholder's own comment. It was never there for CodeQL but for Code
+  Quality, whose rule-based analysis does not cover Kotlin and whose `none`
+  build mode cannot extract it. The placeholder remains, by the operator's
+  decision of 24/09/2026, until Code Quality covers Kotlin; removing it is
+  still CALANDR-14's step 2.
+
 ## [1.0.1] — 21/09/2026
 
 ### Fixed
