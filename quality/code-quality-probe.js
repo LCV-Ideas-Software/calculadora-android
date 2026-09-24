@@ -3,8 +3,9 @@
  *
  * This module is deliberately not imported by the Pages site, an Android
  * application, or any production runtime. Its only purpose is to keep one
- * supported language in this repository so native Code Quality has a
- * deterministic target before real application source exists.
+ * language that native Code Quality's rule-based analysis supports: this
+ * repository's source is Kotlin, which that analysis does not cover yet. It is
+ * removed once Code Quality covers Kotlin (CALANDR-14).
  */
 export const CODE_QUALITY_PROBE = Object.freeze({
   repository: "LCV-Ideas-Software/calculadora-android",

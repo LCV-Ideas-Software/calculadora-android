@@ -294,6 +294,12 @@ evidência.
    `.github/workflows/ci.yml` valida o Gradle Wrapper e executa
    `:app:assembleDebug`, `:app:lintDebug` e os testes unitários em todo pull
    request e em todo push para `main`. É portão de todo PR desde então.
+2. **CodeQL analisa Actions e o placeholder JavaScript**, ~~não Kotlin.~~
+   **Resolvida em 24/09/2026** pela CALANDR-14: o CodeQL 2.27.1, primeira
+   versão que suporta o Kotlin 2.4.20 deste projeto, analisa `java-kotlin` com
+   *autobuild*, e a primeira análise na `main` (`95d8506`) terminou verde. A
+   pré-condição de existir Kotlin no `main` fora satisfeita em 18/09/2026 pela
+   CALANDR-13 (`:core:calc`, PR #40).
 4. **`README.md` desatualizado pelo scaffold de 17/09.** ~~Ainda afirma que não
    existe projeto Gradle nem código Android.~~ **Resolvida em 17/09/2026**, na
    mesma mudança: o `README.md` passou a descrever o scaffold real, a registrar
@@ -302,23 +308,31 @@ evidência.
 
 ### Abertas, bloqueadas por dependência externa
 
-2. **CodeQL analisa Actions e o placeholder JavaScript**, não Kotlin. A
-   pré-condição de existir Kotlin no `main` foi satisfeita em 18/09/2026 pela
-   CALANDR-13 (`:core:calc`, PR #40), não pelo `:app`.
 3. **O placeholder inerte `quality/code-quality-probe.js`** existe, segundo o
    próprio `README.md`, "somente para fornecer ao GitHub Code Quality uma
-   linguagem suportada antes do código Android real". O motivo dele só deixa de
-   existir quando o item 2 estiver feito.
+   linguagem suportada antes do código Android real". ~~O motivo dele só deixa de
+   existir quando o item 2 estiver feito.~~ O item 2 foi feito, e o motivo
+   continua: a análise por regras do Code Quality não cobre Kotlin. A
+   documentação oficial lista C#, Go, Java, JavaScript, Python, Ruby e
+   TypeScript, e o modo `none` com que ele compila não extrai Kotlin. O
+   placeholder é a única fonte que ele analisa aqui.
 
-Os dois são um só trabalho, e nesta ordem: acrescentar `java-kotlin` antes de
+~~Os dois são um só trabalho, e nesta ordem: acrescentar `java-kotlin` antes de
 remover o placeholder, para que o repositório não fique sem linguagem analisável
-no intervalo. São carregados pela issue #42 (CALANDR-14).
+no intervalo. São carregados pela issue #42 (CALANDR-14).~~
 
-**O que bloqueia não é a falta de Kotlin — é o CodeQL.** Ele não suporta o
+~~**O que bloqueia não é a falta de Kotlin — é o CodeQL.** Ele não suporta o
 Kotlin 2.4.20, que é a versão deste projeto, e por isso o operador retirou
 `java-kotlin` do Default setup em 18/09/2026, às 20:27. Enquanto o suporte não
 chegar, acrescentar a linguagem só produziria análise que falha. A reavaliação
-está marcada para **25/09/2026** e é da issue, não deste documento.
+está marcada para **25/09/2026** e é da issue, não deste documento.~~
+
+**O que bloqueia agora é o Code Quality.** O CodeQL passou a cobrir o Kotlin em
+24/09/2026, mas o placeholder não existe para ele. Por decisão do operador na
+mesma data, o placeholder fica até o Code Quality cobrir Kotlin. A remoção
+continua na issue #42 (CALANDR-14): tirar `javascript-typescript` das
+configurações do CodeQL e do Code Quality antes de remover o arquivo, para
+nenhum job ficar sem código.
 
 ---
 
