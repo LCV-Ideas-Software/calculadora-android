@@ -50,6 +50,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.lcv.calculadora.R
 import dev.lcv.calculadora.calc.AnaliseCompraEmReais
 import dev.lcv.calculadora.calc.BandasSensibilidade
+import dev.lcv.calculadora.calc.CamposNumericos
 import dev.lcv.calculadora.calc.CenarioCompraEmReais
 import dev.lcv.calculadora.calc.CenarioCusto
 import dev.lcv.calculadora.calc.CustoConversao
@@ -78,6 +79,9 @@ private val DATA_BR: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy
 /** Marcas usadas pelos testes de Compose. */
 object Marcas {
     const val VALOR = "campo-valor"
+    const val FATURA = "campo-fatura"
+    const val VET_SALDO = "campo-vet-saldo"
+    const val SPREAD_CARTAO = "parametro-spread-cartao"
     const val CALCULAR = "acao-calcular"
     const val RESULTADO = "resultado"
     const val CENARIOS = "cenarios-em-reais"
@@ -120,6 +124,8 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
                 estado.valor,
                 viewModel::mudarValor,
                 rotulo = if (emReais) stringResource(R.string.campo_valor_reais) else stringResource(R.string.campo_valor, estado.moeda),
+                casas = CamposNumericos.CASAS_DINHEIRO,
+                maximoDeDigitos = CamposNumericos.DIGITOS_DINHEIRO,
                 modifier = Modifier.testTag(Marcas.VALOR),
                 exemplo = stringResource(R.string.exemplo_valor),
             )
@@ -135,6 +141,9 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
                     estado.valorFatura,
                     viewModel::mudarValorFatura,
                     rotulo = stringResource(R.string.campo_fatura),
+                    casas = CamposNumericos.CASAS_DINHEIRO,
+                    maximoDeDigitos = CamposNumericos.DIGITOS_DINHEIRO,
+                    modifier = Modifier.testTag(Marcas.FATURA),
                     exemplo = stringResource(R.string.exemplo_fatura),
                 )
             }
@@ -148,6 +157,9 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
                     estado.vetSaldo,
                     viewModel::mudarVetSaldo,
                     rotulo = stringResource(R.string.campo_vet_saldo),
+                    casas = CamposNumericos.CASAS_TAXA,
+                    maximoDeDigitos = CamposNumericos.DIGITOS_TAXA,
+                    modifier = Modifier.testTag(Marcas.VET_SALDO),
                     exemplo = stringResource(R.string.exemplo_vet),
                 )
             }
@@ -334,25 +346,32 @@ private fun ParametrosRecolhiveis(estado: EstadoTela, viewModel: SimulacaoViewMo
             )
             AnimatedVisibility(visible = aberto) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // O fundo de cada campo diz o padrão que vale com ele vazio, tirado das constantes do motor
+                    // (CALANDR-27): "Auto" sugeria uma busca que não existe.
                     ParametroNumerico(
                         stringResource(R.string.parametro_spread_cartao),
                         estado.spreadCartaoPercent,
                         viewModel::mudarSpreadCartao,
+                        stringResource(R.string.parametro_padrao, Formatacao.percentual(Parametros.SPREAD_CARTAO_PADRAO)),
+                        Modifier.testTag(Marcas.SPREAD_CARTAO),
                     )
                     ParametroNumerico(
                         stringResource(R.string.parametro_iof_cartao),
                         estado.iofPercent,
                         viewModel::mudarIof,
+                        stringResource(R.string.parametro_padrao_iof, Formatacao.percentual(Parametros.IOF_CARTAO_PADRAO)),
                     )
                     ParametroNumerico(
                         stringResource(R.string.parametro_spread_global_aberto),
                         estado.spreadGlobalAbertoPercent,
                         viewModel::mudarSpreadGlobalAberto,
+                        stringResource(R.string.parametro_padrao_aberto, Formatacao.percentual(Parametros.SPREAD_GLOBAL_ABERTO_PADRAO)),
                     )
                     ParametroNumerico(
                         stringResource(R.string.parametro_spread_global_fechado),
                         estado.spreadGlobalFechadoPercent,
                         viewModel::mudarSpreadGlobalFechado,
+                        stringResource(R.string.parametro_padrao_fechado, Formatacao.percentual(Parametros.SPREAD_GLOBAL_FECHADO_PADRAO)),
                     )
                 }
             }
@@ -361,9 +380,23 @@ private fun ParametrosRecolhiveis(estado: EstadoTela, viewModel: SimulacaoViewMo
 }
 
 @Composable
-private fun ParametroNumerico(rotulo: String, valor: String, aoMudar: (String) -> Unit) {
+private fun ParametroNumerico(
+    rotulo: String,
+    valor: String,
+    aoMudar: (String) -> Unit,
+    padrao: String,
+    modifier: Modifier = Modifier,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        CampoNumerico(valor, aoMudar, rotulo = rotulo, exemplo = stringResource(R.string.parametro_automatico))
+        CampoNumerico(
+            valor,
+            aoMudar,
+            rotulo = rotulo,
+            casas = CamposNumericos.CASAS_PERCENTUAL,
+            maximoDeDigitos = CamposNumericos.DIGITOS_PERCENTUAL,
+            modifier = modifier,
+            exemplo = padrao,
+        )
     }
 }
 

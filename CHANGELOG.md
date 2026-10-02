@@ -4,6 +4,23 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- Every numeric field formats its input in the Brazilian format as it is
+  typed (CALANDR-27, operator's decisions of 02/10/2026). The cash-register
+  mask the web product applies only to its Valor field now covers all seven:
+  digits only, entering from the right, with thousands dots and the decimal
+  comma added automatically — 2 places for reais and foreign currency
+  (`123456` → `1.234,56`), 4 for the VET (`57340` → `5,7340`) and 2 for the
+  percentages (`350` → `3,50`). The keyboard is numeric and the cursor stays
+  at the end; deleting down to zeros empties the field, while typing zero
+  into an empty field gives `0,00`. The mask is a pure function in
+  `:core:calc` (`mascaraDecimal`), and its output is what
+  `parseNumeroLocalizado` already reads, so the engine is unchanged. An empty
+  parameter field now shows the default it stands for — "Padrão: 5,50%",
+  "Padrão: 0,78% (dias úteis, 9h–17h)" — read from `Parametros`, instead of
+  "Auto", which suggested a lookup that does not exist.
+
 ### Changed
 
 - Turn on R8 for the release build (CALANDR-26). Play Console flagged 1.0.1

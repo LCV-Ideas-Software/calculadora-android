@@ -38,7 +38,10 @@
     <string name="parametro_iof_cartao">IOF Cartão (%)</string>
     <string name="parametro_spread_global_aberto">Spread Global Aberto (%)</string>
     <string name="parametro_spread_global_fechado">Spread Global Fechado (%)</string>
-    <string name="parametro_automatico">Auto</string>
+    <string name="parametro_padrao">Padrão: %1$s</string>
+    <string name="parametro_padrao_iof">Padrão: %1$s (cartão e Conta Global)</string>
+    <string name="parametro_padrao_aberto">Padrão: %1$s (dias úteis, 9h–17h)</string>
+    <string name="parametro_padrao_fechado">Padrão: %1$s (fora das 9h–17h, fins de semana e feriados)</string>
 
     <string name="exemplo_valor">1.000,00</string>
     <string name="exemplo_fatura">1.035,00</string>

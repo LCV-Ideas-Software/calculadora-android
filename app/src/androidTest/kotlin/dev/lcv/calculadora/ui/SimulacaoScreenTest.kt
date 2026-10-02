@@ -4,14 +4,21 @@
  */
 package dev.lcv.calculadora.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.lcv.calculadora.calc.CotacaoSpotBruta
@@ -90,7 +97,8 @@ class SimulacaoScreenTest {
     fun calcularComValorValidoMostraOResultado() {
         montar()
 
-        compose.onNodeWithTag(Marcas.VALOR).performTextInput("1000")
+        // Máscara de caixa (CALANDR-27): 100000 entra como 1.000,00.
+        compose.onNodeWithTag(Marcas.VALOR).performTextInput("100000")
         compose.onNodeWithTag(Marcas.CALCULAR).performClick()
         compose.waitUntil(TEMPO_LIMITE) {
             compose.onAllNodesWithTag(Marcas.RESULTADO).fetchSemanticsNodes().isNotEmpty()
@@ -104,13 +112,62 @@ class SimulacaoScreenTest {
         montar()
 
         compose.onNodeWithTag(Marcas.DCC).performClick()
-        compose.onNodeWithTag(Marcas.VALOR).performTextInput("1000")
+        // Máscara de caixa (CALANDR-27): 100000 entra como 1.000,00.
+        compose.onNodeWithTag(Marcas.VALOR).performTextInput("100000")
         compose.onNodeWithTag(Marcas.CALCULAR).performClick()
         compose.waitUntil(TEMPO_LIMITE) {
             compose.onAllNodesWithTag(Marcas.CENARIOS).fetchSemanticsNodes().isNotEmpty()
         }
 
         compose.onNodeWithTag(Marcas.CENARIOS).assertIsDisplayed()
+    }
+
+    // Máscara de caixa nos campos numéricos e o padrão no lugar de "Auto" (decisões do operador, 02/10/2026, CALANDR-27).
+
+    @Test
+    fun cadaDigitoEntraPelaDireitaNoPadraoBrasileiro() {
+        montar()
+
+        val valor = compose.onNodeWithTag(Marcas.VALOR)
+        valor.performTextInput("1")
+        valor.assert(hasText("0,01"))
+        valor.performTextInput("23456")
+        valor.assert(hasText("1.234,56"))
+        // O dígito seguinte vai para o fim, e não para onde o ponto de milhar empurrou o cursor.
+        valor.performTextInput("7")
+        valor.assert(hasText("12.345,67"))
+    }
+
+    @Test
+    fun oVetUsaQuatroCasas() {
+        montar()
+
+        compose.onNodeWithTag(Marcas.VET_SALDO).performTextInput("57340")
+        compose.onNodeWithTag(Marcas.VET_SALDO).assert(hasText("5,7340"))
+    }
+
+    @Test
+    fun apagarAteSoSobraremZerosEsvaziaOCampo() {
+        montar()
+
+        val valor = compose.onNodeWithTag(Marcas.VALOR)
+        valor.performTextInput("1")
+        valor.assert(hasText("0,01"))
+        // O teclado apaga o último caractere: "0,0" depois de "0,01".
+        valor.performTextReplacement("0,0")
+        valor.assert(SemanticsMatcher.expectValue(SemanticsProperties.EditableText, AnnotatedString("")))
+    }
+
+    @Test
+    fun oParametroVazioMostraOPadraoQueVaiValer() {
+        montar()
+
+        compose.onNodeWithText("Personalizar parâmetros", substring = true).performClick()
+        compose.onNodeWithTag(Marcas.SPREAD_CARTAO).performClick()
+        compose.waitUntil(TEMPO_LIMITE) {
+            compose.onAllNodesWithText("Padrão: 5,50%", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onAllNodesWithText("Auto", useUnmergedTree = true).assertCountEquals(0)
     }
 }
 

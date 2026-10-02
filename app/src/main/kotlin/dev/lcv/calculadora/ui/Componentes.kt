@@ -23,10 +23,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.lcv.calculadora.calc.mascaraDecimal
 
 /**
  * Os átomos visuais do produto web, traduzidos para componentes nativos: o
@@ -68,23 +71,35 @@ fun CampoEmCaixa(
     }
 }
 
-/** `glass-input`: campo claro, cantos de 12 dp, foco na cor de destaque da marca. */
+/**
+ * `glass-input`: campo claro, cantos de 12 dp, foco na cor de destaque da marca.
+ *
+ * A entrada passa pela máscara de caixa ([mascaraDecimal], CALANDR-27): só
+ * dígitos, que entram pela direita com [casas] decimais e saem no padrão
+ * brasileiro. O cursor fica sempre no fim: a máscara acrescenta pontos de
+ * milhar, e um cursor que ficasse no meio poria o dígito seguinte fora de ordem.
+ */
 @Composable
 fun CampoNumerico(
     valor: String,
     aoMudar: (String) -> Unit,
     rotulo: String,
+    casas: Int,
+    maximoDeDigitos: Int,
     modifier: Modifier = Modifier,
     exemplo: String? = null,
 ) {
     OutlinedTextField(
-        value = valor,
+        value = TextFieldValue(valor, TextRange(valor.length)),
         label = { Text(rotulo) },
-        onValueChange = aoMudar,
+        onValueChange = { novo ->
+            // Só a seleção mudou (um toque no meio do texto): nada a formatar nem a avisar.
+            if (novo.text != valor) aoMudar(mascaraDecimal(novo.text, valor, casas, maximoDeDigitos))
+        },
         modifier = modifier.fillMaxWidth(),
         singleLine = true,
         placeholder = exemplo?.let { { Text(it, color = Tema.cores.textoApagado) } },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         shape = RoundedCornerShape(Tema.formas.campo),
         textStyle = MaterialTheme.typography.bodyMedium,
         colors = OutlinedTextFieldDefaults.colors(

@@ -237,6 +237,22 @@ qualquer ano do calendário gregoriano, sem tabela e sem terceiro. É a mesma
 lógica do `BigDecimal`: onde a plataforma permite fazer melhor que o navegador,
 faz-se melhor. Os feriados fixos continuam em lista, porque são fixos.
 
+**Os campos numéricos formatam a entrada sozinhos (decisões do operador,
+02/10/2026, CALANDR-27).** Todos usam a máscara de caixa que o produto web
+aplica só ao campo Valor (`applyCurrencyMask`, `SimulationForm.tsx`): digita-se
+só número, e o valor entra pela direita no padrão brasileiro, com o ponto de
+milhar e a vírgula automáticos. As casas são as de cada campo: 2 em reais e
+na moeda estrangeira (`123456` → `1.234,56`), 4 no VET (`57340` → `5,7340`) e
+2 nos percentuais (`350` → `3,50`). O teclado é só numérico e o cursor fica no
+fim. Apagar até sobrarem só zeros esvazia o campo, e digitar zero num campo
+vazio dá `0,00`, porque zero é um valor válido, diferente de deixar o padrão.
+O que a máscara produz é o que o `parseNumeroLocalizado` já lê; o motor não
+muda. Um parâmetro vazio vale o padrão, e o fundo do campo diz qual: "Padrão:
+5,50%", "Padrão: 3,50% (cartão e Conta Global)", "Padrão: 0,78% (dias úteis,
+9h–17h)" e "Padrão: 1,18% (fora das 9h–17h, fins de semana e feriados)", com
+os números lidos das constantes de `Parametros`. O "Auto" de antes sugeria uma
+busca que não existe.
+
 ## 8. Testes
 
 O motor em `:core:calc` é testado na JVM, sem emulador.
@@ -320,6 +336,11 @@ evidência.
    *autobuild*, e a primeira análise na `main` (`95d8506`) terminou verde. A
    pré-condição de existir Kotlin no `main` fora satisfeita em 18/09/2026 pela
    CALANDR-13 (`:core:calc`, PR #40).
+
+<!-- Os itens têm número fixo, citado no texto ("o item 2"); o 3 continua aberto, abaixo. Lista
+     separada para o 4 ser exibido como 4: numa lista só, o Markdown o renumeraria para 3. -->
+
+<!-- markdownlint-disable-next-line MD029 -->
 4. **`README.md` desatualizado pelo scaffold de 17/09.** ~~Ainda afirma que não
    existe projeto Gradle nem código Android.~~ **Resolvida em 17/09/2026**, na
    mesma mudança: o `README.md` passou a descrever o scaffold real, a registrar
@@ -328,6 +349,7 @@ evidência.
 
 ### Abertas, bloqueadas por dependência externa
 
+<!-- markdownlint-disable-next-line MD029 -->
 3. **O placeholder inerte `quality/code-quality-probe.js`** existe, segundo o
    próprio `README.md`, "somente para fornecer ao GitHub Code Quality uma
    linguagem suportada antes do código Android real". ~~O motivo dele só deixa de

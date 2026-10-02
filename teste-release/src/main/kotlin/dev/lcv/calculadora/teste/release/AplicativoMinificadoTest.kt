@@ -104,7 +104,8 @@ class AplicativoMinificadoTest {
     }
 
     private fun preencherOValorECalcular() {
-        achar(By.clazz("android.widget.EditText")).text = "100"
+        // Máscara de caixa: os dígitos entram pelos centavos, e "10000" vira 100,00.
+        achar(By.clazz("android.widget.EditText")).text = "10000"
         esconderOTeclado()
         tocarNoFormulario(By.text(CALCULAR))
     }
