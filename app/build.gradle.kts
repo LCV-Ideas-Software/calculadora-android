@@ -55,6 +55,20 @@ android {
         unitTests.all { it.useJUnitPlatform() }
     }
 
+    buildTypes {
+        release {
+            // R8 no build publicado: reduz, otimiza e ofusca o código e os
+            // recursos, e grava o `r8.json` no metadado do bundle, de onde a Play
+            // tira as porcentagens. Sem ele a Play acusou a otimização de código
+            // DEX abaixo do limite, com ofuscação de 1% (CALANDR-26). É a DSL do
+            // AGP 9.3+, que já inclui as regras padrão do Android; Hilt, Room,
+            // Retrofit e OkHttp trazem as suas, e o app não usa reflexão própria.
+            optimization {
+                enable = true
+            }
+        }
+    }
+
     // Release signing is injected by the publishing workflow through the
     // android.injected.signing.* properties, so no key material and no
     // password is ever written into this repository.
