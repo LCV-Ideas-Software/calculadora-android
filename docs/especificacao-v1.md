@@ -252,6 +252,17 @@ não é evidência de nada.
 
 A interface tem testes de Compose para os fluxos principais.
 
+O build publicado sai do R8 (CALANDR-26), e os testes acima rodam no debug, com
+dublês: não exercitam o que o R8 pode quebrar em execução. Por isso o módulo
+`:teste-release` instala o build `minificado` do `:app` (o release, assinado
+com a chave de depuração) e o percorre de fora do processo dele com o UI
+Automator, que é o caminho oficial para testar o build otimizado: a abertura
+(o grafo do Hilt), a simulação com cotação ao vivo (Retrofit, OkHttp e JSON; o
+resultado ou o aviso do próprio aplicativo, porque a CI não controla a rede), o
+modo cobrado em reais e a tela de licenças (os `assets`). Roda na CI, no mesmo
+Pixel 2 com API 34 dos outros testes de aparelho, e foi conferido com um
+controle: com o aplicativo derrubado ao abrir, os três fluxos caem.
+
 ## 9. Privacidade e publicação
 
 Sem inteligência artificial e sem envio de e-mail, **o aplicativo não coleta

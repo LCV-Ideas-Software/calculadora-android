@@ -20,6 +20,14 @@ All material changes to `calculadora-android` are recorded here.
   file travels in the bundle. The minified release APK was driven on an
   emulator through the calculation with live quotes, the sensitivity and
   backtest results, the DCC mode and the licenses screen, with no crash.
+  CI now drives the minified build too: the new `:teste-release` module
+  (`com.android.test`, self-instrumenting, UI Automator 2.4.0) installs the
+  `minificado` build type of `:app` — the release, signed with the debug key —
+  and runs the opening, the simulation with live quotes (the result or the
+  app's own notice, since CI does not control the network), the DCC mode and
+  the licenses screen from outside the app's process, on the same Pixel 2 API
+  34 managed device as the other instrumented tests. A control that crashes
+  the app on launch fails all three.
 - `SimulacaoViewModel` no longer defaults its `SavedStateHandle` to the
   no-argument constructor, which AndroidX reserves for tests. Hilt always
   injected the real one in the app; the two tests that relied on the default

@@ -67,6 +67,18 @@ android {
                 enable = true
             }
         }
+        // O release minificado, assinado com a chave de depuração, só para o
+        // `:teste-release` instalar e percorrer de fora do processo (padrão
+        // oficial dos módulos de teste do build de release). A otimização é
+        // repetida aqui de propósito: o teste vale para o que a Play recebe.
+        create("minificado") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            optimization {
+                enable = true
+            }
+        }
     }
 
     // Release signing is injected by the publishing workflow through the
