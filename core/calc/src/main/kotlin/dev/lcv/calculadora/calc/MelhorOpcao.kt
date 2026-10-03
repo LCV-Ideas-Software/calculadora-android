@@ -31,8 +31,14 @@ enum class ErroEntrada { VALOR_INVALIDO, DATA_AUSENTE, DATA_FUTURA, PARAMETRO_IN
  * Validação do formulário, como no produto web: o valor precisa ser um número
  * positivo e, fora do modo cobrado em reais, a data da compra é obrigatória.
  */
-fun validarEntrada(valorTexto: String, temDataCompra: Boolean, cobradoEmReais: Boolean): ErroEntrada? {
-    val valor: BigDecimal? = parseNumeroLocalizado(valorTexto)
+fun validarEntrada(valorTexto: String, temDataCompra: Boolean, cobradoEmReais: Boolean): ErroEntrada? =
+    validarEntrada(parseNumeroLocalizado(valorTexto), temDataCompra, cobradoEmReais)
+
+/**
+ * A mesma validação com o número pronto, como os campos de caixa da tela o
+ * entregam (decisão 10 do operador, CALANDR-27): `null` é o campo vazio.
+ */
+fun validarEntrada(valor: BigDecimal?, temDataCompra: Boolean, cobradoEmReais: Boolean): ErroEntrada? {
     if (valor == null || valor.signum() <= 0) return ErroEntrada.VALOR_INVALIDO
     if (!cobradoEmReais && !temDataCompra) return ErroEntrada.DATA_AUSENTE
     return null

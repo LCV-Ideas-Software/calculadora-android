@@ -237,6 +237,48 @@ qualquer ano do calendário gregoriano, sem tabela e sem terceiro. É a mesma
 lógica do `BigDecimal`: onde a plataforma permite fazer melhor que o navegador,
 faz-se melhor. Os feriados fixos continuam em lista, porque são fixos.
 
+**Os campos numéricos formatam a entrada sozinhos (decisões do operador de 02
+e 03/10/2026, CALANDR-27).** Todos usam a entrada de caixa que o produto web
+aplica só ao campo Valor (`applyCurrencyMask`, `SimulationForm.tsx`): só os
+dígitos contam, e entram pela direita no padrão brasileiro, com o ponto de
+milhar e a vírgula automáticos. As casas são as de cada campo: 2 em reais e na
+moeda estrangeira (`123456` → `1.234,56`), 4 no VET (`57340` → `5,7340`) e 2
+nos percentuais (`350` → `3,50`). O teclado é numérico.
+
+Cada campo é o campo de estado do Compose. O valor é o texto cru em dígitos de
+um `TextFieldState` do ViewModel; a `InputTransformation` (`DigitosDeCaixa`)
+aceita só dígitos e põe o cursor no fim, e a `OutputTransformation`
+(`FormatoDeCaixa`) só insere os separadores. Edição, seleção, área de
+transferência, acessibilidade, desfazer e salvamento são da plataforma. As
+regras:
+
+1. Vazio vale o padrão (ou "não informado", nos opcionais), e `0` é zero
+   explícito: digitar zero num campo vazio dá `0,00`, e apagar o último dígito
+   até esvaziar volta ao padrão.
+2. Texto colado, ditado, autopreenchido ou da acessibilidade conta só os
+   dígitos, como no web: `5,5` vira `0,55`, e `100` vira `1,00`.
+3. Uma tecla ou colagem sem dígito algum, ou que passaria do limite do campo, é
+   recusada inteira e em silêncio: o valor, a seleção e o resultado ficam. Uma
+   letra de teclado físico sobre o número selecionado não o apaga.
+4. "Selecionar tudo" e uma tecla trocam o valor; um cursor em outro ponto ou
+   uma seleção parcial vão para o fim.
+5. O resultado guarda os números com que foi calculado e só aparece enquanto os
+   sete campos tiverem esses números: voltar a eles, até pelo desfazer, o
+   mostra de novo, sem calcular. Data, modo e moeda continuam apagando o
+   resultado.
+
+Um parâmetro vazio vale o padrão, e o campo diz qual mesmo parado, com o rótulo
+sempre recolhido acima: "Padrão: 5,50%", "Padrão: 3,50% (cartão e Conta
+Global)", "Padrão: 0,78% (dias úteis, 9h–17h, horário de Brasília)" e "Padrão:
+1,18% (fora das 9h–17h de Brasília, fins de semana e feriados)", com os números
+lidos das constantes de `Parametros` e as horas das de `ContextoOperacional`. O
+"Auto" de antes sugeria uma busca que não existe. Nos campos de valor, o exemplo
+("1.000,00") só aparece com o campo em foco, para não ser lido como um valor
+digitado (decisão do operador de 03/10/2026). No modo cobrado em reais, os
+dois spreads da Conta Global, que o motor não usa ali, somem. Os valores
+guardados pela 1.0.1 são ignorados: os campos usam chaves novas, e as antigas
+são apagadas.
+
 ## 8. Testes
 
 O motor em `:core:calc` é testado na JVM, sem emulador.
@@ -320,6 +362,11 @@ evidência.
    *autobuild*, e a primeira análise na `main` (`95d8506`) terminou verde. A
    pré-condição de existir Kotlin no `main` fora satisfeita em 18/09/2026 pela
    CALANDR-13 (`:core:calc`, PR #40).
+
+<!-- Os itens têm número fixo, citado no texto ("o item 2"); o 3 continua aberto, abaixo. Lista
+     separada para o 4 ser exibido como 4: numa lista só, o Markdown o renumeraria para 3. -->
+
+<!-- markdownlint-disable-next-line MD029 -->
 4. **`README.md` desatualizado pelo scaffold de 17/09.** ~~Ainda afirma que não
    existe projeto Gradle nem código Android.~~ **Resolvida em 17/09/2026**, na
    mesma mudança: o `README.md` passou a descrever o scaffold real, a registrar
@@ -328,6 +375,7 @@ evidência.
 
 ### Abertas, bloqueadas por dependência externa
 
+<!-- markdownlint-disable-next-line MD029 -->
 3. **O placeholder inerte `quality/code-quality-probe.js`** existe, segundo o
    próprio `README.md`, "somente para fornecer ao GitHub Code Quality uma
    linguagem suportada antes do código Android real". ~~O motivo dele só deixa de

@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -78,6 +79,12 @@ private val DATA_BR: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy
 /** Marcas usadas pelos testes de Compose. */
 object Marcas {
     const val VALOR = "campo-valor"
+    const val FATURA = "campo-fatura"
+    const val VET_SALDO = "campo-vet-saldo"
+    const val SPREAD_CARTAO = "parametro-spread-cartao"
+    const val IOF = "parametro-iof"
+    const val SPREAD_ABERTO = "parametro-spread-aberto"
+    const val SPREAD_FECHADO = "parametro-spread-fechado"
     const val CALCULAR = "acao-calcular"
     const val RESULTADO = "resultado"
     const val CENARIOS = "cenarios-em-reais"
@@ -87,6 +94,9 @@ object Marcas {
 @Composable
 fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier) {
     val estado by viewModel.estado.collectAsStateWithLifecycle()
+    // O resultado guardado, conferido contra os campos de agora (decisão 13 do operador, CALANDR-27): ler os
+    // estados dos campos aqui, na composição, faz qualquer mudança de texto refazer a comparação.
+    val visivel = estado.visivelCom(viewModel.entradasAtuais())
     val contexto = LocalContext.current
     val emReais = estado.modo == Modo.COBRADO_EM_REAIS
 
@@ -117,9 +127,9 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
             },
         ) {
             CampoNumerico(
-                estado.valor,
-                viewModel::mudarValor,
+                viewModel.campoValor,
                 rotulo = if (emReais) stringResource(R.string.campo_valor_reais) else stringResource(R.string.campo_valor, estado.moeda),
+                tipo = TipoNumerico.DINHEIRO,
                 modifier = Modifier.testTag(Marcas.VALOR),
                 exemplo = stringResource(R.string.exemplo_valor),
             )
@@ -132,9 +142,10 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
                 dica = stringResource(R.string.dica_fatura),
             ) {
                 CampoNumerico(
-                    estado.valorFatura,
-                    viewModel::mudarValorFatura,
+                    viewModel.campoFatura,
                     rotulo = stringResource(R.string.campo_fatura),
+                    tipo = TipoNumerico.DINHEIRO,
+                    modifier = Modifier.testTag(Marcas.FATURA),
                     exemplo = stringResource(R.string.exemplo_fatura),
                 )
             }
@@ -145,19 +156,20 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
                 dica = stringResource(R.string.dica_vet_saldo),
             ) {
                 CampoNumerico(
-                    estado.vetSaldo,
-                    viewModel::mudarVetSaldo,
+                    viewModel.campoVet,
                     rotulo = stringResource(R.string.campo_vet_saldo),
+                    tipo = TipoNumerico.TAXA,
+                    modifier = Modifier.testTag(Marcas.VET_SALDO),
                     exemplo = stringResource(R.string.exemplo_vet),
                 )
             }
         }
 
-        ParametrosRecolhiveis(estado, viewModel)
+        ParametrosRecolhiveis(emReais, viewModel)
 
         Button(
             onClick = viewModel::calcular,
-            enabled = !estado.carregando,
+            enabled = !visivel.carregando,
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag(Marcas.CALCULAR),
@@ -165,7 +177,7 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
             Text(stringResource(R.string.acao_calcular), fontWeight = FontWeight.Bold)
         }
 
-        estado.erro?.let { erro ->
+        visivel.erro?.let { erro ->
             Aviso(
                 texto = stringResource(
                     when (erro) {
@@ -181,21 +193,21 @@ fun SimulacaoScreen(viewModel: SimulacaoViewModel, modifier: Modifier = Modifier
             )
         }
 
-        if (estado.carregando) {
+        if (visivel.carregando) {
             LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             Text(stringResource(R.string.carregando), fontSize = 12.sp, color = Tema.cores.textoFraco)
         }
 
-        if (estado.falhou) {
+        if (visivel.falhou) {
             Aviso(stringResource(R.string.erro_falha), Tema.cores.destaqueSaldo, Tema.cores.textoNorm)
         }
 
-        estado.simulacao?.let { resultado ->
+        visivel.simulacao?.let { resultado ->
             Resultado(resultado) { compartilhar(contexto, textoDaSimulacao(resultado.simulacao)) }
         }
 
-        val analise = estado.compraEmReais
-        val valorEmReais = estado.valorEmReais
+        val analise = visivel.compraEmReais
+        val valorEmReais = visivel.valorEmReais
         if (analise != null && valorEmReais != null) {
             CompraEmReais(analise, valorEmReais)
         }
@@ -309,9 +321,12 @@ private fun SeletorDeData(data: LocalDate, aoMudar: (LocalDate) -> Unit) {
     }
 }
 
-/** A seção recolhível de parâmetros que o web abre com `<details>`. */
+/**
+ * A seção recolhível de parâmetros que o web abre com `<details>`. No modo cobrado em reais o motor não usa os
+ * spreads da Conta Global, e os dois campos somem (decisão 9 do operador, CALANDR-27).
+ */
 @Composable
-private fun ParametrosRecolhiveis(estado: EstadoTela, viewModel: SimulacaoViewModel) {
+private fun ParametrosRecolhiveis(emReais: Boolean, viewModel: SimulacaoViewModel) {
     var aberto by remember { mutableStateOf(false) }
 
     Surface(
@@ -334,26 +349,46 @@ private fun ParametrosRecolhiveis(estado: EstadoTela, viewModel: SimulacaoViewMo
             )
             AnimatedVisibility(visible = aberto) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // O fundo de cada campo diz o padrão que vale com ele vazio, tirado das constantes do motor
+                    // (CALANDR-27): "Auto" sugeria uma busca que não existe.
                     ParametroNumerico(
                         stringResource(R.string.parametro_spread_cartao),
-                        estado.spreadCartaoPercent,
-                        viewModel::mudarSpreadCartao,
+                        viewModel.campoSpreadCartao,
+                        stringResource(R.string.parametro_padrao, Formatacao.percentual(Parametros.SPREAD_CARTAO_PADRAO)),
+                        Modifier.testTag(Marcas.SPREAD_CARTAO),
                     )
+                    // Um só IOF vale para o cartão e a Conta Global; o teste do `:core:calc` garante que os dois
+                    // padrões são iguais, para este texto não mentir sobre a Conta Global.
                     ParametroNumerico(
                         stringResource(R.string.parametro_iof_cartao),
-                        estado.iofPercent,
-                        viewModel::mudarIof,
+                        viewModel.campoIof,
+                        stringResource(R.string.parametro_padrao_iof, Formatacao.percentual(Parametros.IOF_CARTAO_PADRAO)),
+                        Modifier.testTag(Marcas.IOF),
                     )
-                    ParametroNumerico(
-                        stringResource(R.string.parametro_spread_global_aberto),
-                        estado.spreadGlobalAbertoPercent,
-                        viewModel::mudarSpreadGlobalAberto,
-                    )
-                    ParametroNumerico(
-                        stringResource(R.string.parametro_spread_global_fechado),
-                        estado.spreadGlobalFechadoPercent,
-                        viewModel::mudarSpreadGlobalFechado,
-                    )
+                    if (!emReais) {
+                        ParametroNumerico(
+                            stringResource(R.string.parametro_spread_global_aberto),
+                            viewModel.campoSpreadAberto,
+                            stringResource(
+                                R.string.parametro_padrao_aberto,
+                                Formatacao.percentual(Parametros.SPREAD_GLOBAL_ABERTO_PADRAO),
+                                ContextoOperacional.ABERTURA_MERCADO_HORA,
+                                ContextoOperacional.FECHAMENTO_MERCADO_HORA,
+                            ),
+                            Modifier.testTag(Marcas.SPREAD_ABERTO),
+                        )
+                        ParametroNumerico(
+                            stringResource(R.string.parametro_spread_global_fechado),
+                            viewModel.campoSpreadFechado,
+                            stringResource(
+                                R.string.parametro_padrao_fechado,
+                                Formatacao.percentual(Parametros.SPREAD_GLOBAL_FECHADO_PADRAO),
+                                ContextoOperacional.ABERTURA_MERCADO_HORA,
+                                ContextoOperacional.FECHAMENTO_MERCADO_HORA,
+                            ),
+                            Modifier.testTag(Marcas.SPREAD_FECHADO),
+                        )
+                    }
                 }
             }
         }
@@ -361,9 +396,21 @@ private fun ParametrosRecolhiveis(estado: EstadoTela, viewModel: SimulacaoViewMo
 }
 
 @Composable
-private fun ParametroNumerico(rotulo: String, valor: String, aoMudar: (String) -> Unit) {
+private fun ParametroNumerico(
+    rotulo: String,
+    estado: TextFieldState,
+    padrao: String,
+    modifier: Modifier = Modifier,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        CampoNumerico(valor, aoMudar, rotulo = rotulo, exemplo = stringResource(R.string.parametro_automatico))
+        CampoNumerico(
+            estado,
+            rotulo = rotulo,
+            tipo = TipoNumerico.PERCENTUAL,
+            modifier = modifier,
+            exemplo = padrao,
+            exemploParado = true,
+        )
     }
 }
 

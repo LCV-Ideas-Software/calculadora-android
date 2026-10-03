@@ -14,12 +14,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldLabelPosition
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -68,23 +73,42 @@ fun CampoEmCaixa(
     }
 }
 
-/** `glass-input`: campo claro, cantos de 12 dp, foco na cor de destaque da marca. */
+/**
+ * `glass-input`: campo claro, cantos de 12 dp, foco na cor de destaque da marca.
+ *
+ * O campo numérico de caixa (CALANDR-27): o [estado] guarda só os dígitos, que
+ * [DigitosDeCaixa] aceita pela direita, e [FormatoDeCaixa] os mostra no padrão
+ * brasileiro com as casas do [tipo]. Edição, seleção, teclado, área de
+ * transferência, acessibilidade, desfazer e salvamento são da plataforma.
+ *
+ * Com [exemploParado], o rótulo fica sempre recolhido acima, para o [exemplo]
+ * aparecer também com o campo parado e vazio: é o "Padrão: x%" dos parâmetros
+ * (decisão 7 do operador). Nos campos de valor, o exemplo ("1.000,00") só
+ * aparece com o campo em foco, para não ser lido como um valor digitado
+ * (decisão do operador, 03/10/2026).
+ */
 @Composable
 fun CampoNumerico(
-    valor: String,
-    aoMudar: (String) -> Unit,
+    estado: TextFieldState,
     rotulo: String,
+    tipo: TipoNumerico,
     modifier: Modifier = Modifier,
     exemplo: String? = null,
+    exemploParado: Boolean = false,
 ) {
+    // O limite vem depois da regra, para uma colagem formatada ser reduzida a dígitos antes de ser contada.
+    val entrada = remember(tipo) { DigitosDeCaixa.maxLength(tipo.maximoDeDigitos) }
+    val saida = remember(tipo) { FormatoDeCaixa(tipo.casas) }
     OutlinedTextField(
-        value = valor,
+        state = estado,
         label = { Text(rotulo) },
-        onValueChange = aoMudar,
+        labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = exemploParado),
+        inputTransformation = entrada,
+        outputTransformation = saida,
         modifier = modifier.fillMaxWidth(),
-        singleLine = true,
+        lineLimits = TextFieldLineLimits.SingleLine,
         placeholder = exemplo?.let { { Text(it, color = Tema.cores.textoApagado) } },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         shape = RoundedCornerShape(Tema.formas.campo),
         textStyle = MaterialTheme.typography.bodyMedium,
         colors = OutlinedTextFieldDefaults.colors(

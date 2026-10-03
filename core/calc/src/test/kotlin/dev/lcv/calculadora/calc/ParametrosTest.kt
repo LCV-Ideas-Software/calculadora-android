@@ -5,6 +5,7 @@
 package dev.lcv.calculadora.calc
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class ParametrosTest {
@@ -42,6 +43,13 @@ class ParametrosTest {
         val p = Parametros.PADRAO.comSobreposicoes(iofPercent = dec("1.1"))
         assertDecimal("0.011", p.iofCartao)
         assertDecimal("0.011", p.iofGlobal)
+    }
+
+    // A tela mostra um único padrão de IOF "(cartão e Conta Global)", lido de IOF_CARTAO_PADRAO; se as duas
+    // constantes se separarem, esse texto passa a mentir sobre a Conta Global (decisão 11, CALANDR-27).
+    @Test
+    fun `o padrao de IOF e o mesmo para cartao e conta global`() {
+        assertEquals(Parametros.IOF_CARTAO_PADRAO, Parametros.IOF_GLOBAL_PADRAO)
     }
 
     @Test

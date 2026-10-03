@@ -4,6 +4,35 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Added
+
+- Every numeric field formats its input in the Brazilian format as it is
+  typed (CALANDR-27, operator's decisions of 02 and 03/10/2026). The
+  cash-register entry the web product applies only to its Valor field now
+  covers all seven: digits only, entering from the right, with thousands dots
+  and the decimal comma added automatically — 2 places for reais and foreign
+  currency (`123456` → `1.234,56`), 4 for the VET (`57340` → `5,7340`) and 2
+  for the percentages (`350` → `3,50`). Each field is Compose's state-based
+  text field: the value is the raw digit string in a `TextFieldState` held by
+  the ViewModel, an `InputTransformation` (`DigitosDeCaixa`) keeps digits only
+  with the cursor at the end, and an `OutputTransformation`
+  (`FormatoDeCaixa`) inserts the separators; editing, selection, clipboard,
+  accessibility, undo and saving are the platform's. Empty means the default
+  and `0` is an explicit zero. Pasted, dictated, autofilled or accessibility
+  text counts only its digits. A key or paste that adds no digit, or that
+  would pass the field's limit, is refused whole and keeps the value, the
+  selection and the result. "Select all" and a key replace the value; any
+  other cursor or partial selection moves to the end. A result is shown only
+  while the seven fields hold the numbers it was calculated with, so going
+  back to them, even by undo, shows it again; date, mode and currency still
+  clear it. An empty parameter field shows the default it stands for even
+  while idle — "Padrão: 5,50%", "Padrão: 0,78% (dias úteis, 9h–17h, horário
+  de Brasília)" — read from `Parametros` and `ContextoOperacional`, instead of
+  "Auto", which suggested a lookup that does not exist. In "cobrado em reais"
+  mode the two Conta Global spreads, which the engine ignores there, are
+  hidden. Field values saved by 1.0.1 are ignored: the fields use new
+  saved-state keys, and the old keys are removed.
+
 ### Changed
 
 - Turn on R8 for the release build (CALANDR-26). Play Console flagged 1.0.1

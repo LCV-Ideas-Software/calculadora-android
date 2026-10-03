@@ -57,4 +57,15 @@ class MelhorOpcaoTest {
         assertNull(validarEntrada("100", temDataCompra = false, cobradoEmReais = true))
         assertNull(validarEntrada("1.234,56", temDataCompra = true, cobradoEmReais = false))
     }
+
+    // Os campos da tela guardam dígitos e entregam o número pronto (decisão 10 do operador, 03/10/2026, CALANDR-27).
+    @Test
+    fun `validacao do formulario com o numero pronto`() {
+        assertEquals(ErroEntrada.VALOR_INVALIDO, validarEntrada(null, temDataCompra = true, cobradoEmReais = false))
+        assertEquals(ErroEntrada.VALOR_INVALIDO, validarEntrada(dec("0.00"), temDataCompra = true, cobradoEmReais = false))
+        assertEquals(ErroEntrada.VALOR_INVALIDO, validarEntrada(dec("-1"), temDataCompra = true, cobradoEmReais = false))
+        assertEquals(ErroEntrada.DATA_AUSENTE, validarEntrada(dec("100"), temDataCompra = false, cobradoEmReais = false))
+        assertNull(validarEntrada(dec("100"), temDataCompra = false, cobradoEmReais = true))
+        assertNull(validarEntrada(dec("0.01"), temDataCompra = true, cobradoEmReais = false))
+    }
 }
