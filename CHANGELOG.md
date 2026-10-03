@@ -4,6 +4,20 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- CI keeps the report of the minified-build tests as an artifact of every run
+  (CALANDR-28). Gradle does not fail on a skipped test, so the "Build, lint
+  and test" check was green whether the live-quote flow of `:teste-release`
+  ran or was skipped, and the job log carries no logcat. The
+  `teste-release-report` artifact holds the JUnit XML, the HTML report and the
+  logcat of each of the three flows, where the quote-source probes are
+  logged. It is uploaded with `actions/upload-artifact`, at the pin the
+  Scorecard and publication workflows already use, also when the tests fail.
+- The scroll loop of `tocarNoFormulario` in `:teste-release` no longer raises
+  the "Expression is unused" compiler warning; it scrolls the same way, at
+  most ten times.
+
 ### Fixed
 
 - With the software keyboard open, the whole window was pushed up and the

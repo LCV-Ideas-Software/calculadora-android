@@ -136,7 +136,7 @@ class AplicativoMinificadoTest {
         val rolavel = aparelho.findObject(By.scrollable(true))
         var voltas = 0
         // `scroll` devolve se ainda há o que rolar; dez voltas sobram para o formulário mais longo.
-        while (rolavel != null && voltas++ < 10 && rolavel.scroll(Direction.DOWN, 1.0f)) Unit
+        while (rolavel != null && voltas < 10 && rolavel.scroll(Direction.DOWN, 1.0f)) voltas++
         achar(seletor).click()
     }
 
