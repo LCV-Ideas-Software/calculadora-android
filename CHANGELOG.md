@@ -13,8 +13,11 @@ All material changes to `calculadora-android` are recorded here.
   comma added automatically — 2 places for reais and foreign currency
   (`123456` → `1.234,56`), 4 for the VET (`57340` → `5,7340`) and 2 for the
   percentages (`350` → `3,50`). The keyboard is numeric and the cursor stays
-  at the end; deleting down to zeros empties the field, while typing zero
-  into an empty field gives `0,00`. The mask is a pure function in
+  at the end; backspacing down to zeros empties the field, while typing zero
+  into an empty field, or replacing the whole value with zero, gives `0,00`.
+  A key that leaves the number unchanged (a digit past the field's limit, a
+  letter from a hardware keyboard) does not clear the result already
+  calculated. The mask is a pure function in
   `:core:calc` (`mascaraDecimal`), and its output is what
   `parseNumeroLocalizado` already reads, so the engine is unchanged. An empty
   parameter field now shows the default it stands for — "Padrão: 5,50%",

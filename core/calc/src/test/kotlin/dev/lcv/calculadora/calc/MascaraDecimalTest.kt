@@ -60,6 +60,16 @@ class MascaraDecimalTest {
     }
 
     @Test
+    fun `trocar o texto inteiro por zero e digitar zero, e so apagar o ultimo caractere esvazia`() {
+        // Selecionar o valor e digitar 0, ou o preenchimento automático: um spread de 0 %, e não o padrão.
+        assertEquals("0,00", dinheiro("0", anterior = "5,50"))
+        assertEquals("0,00", dinheiro("0", anterior = "0,10"))
+        assertEquals("0,00", mascaraDecimal("0", "1,18", CASAS_PERCENTUAL, DIGITOS_PERCENTUAL))
+        // A tecla de apagar tira o último caractere: aí sim o campo volta ao padrão.
+        assertEquals("", dinheiro("0,0", anterior = "0,01"))
+    }
+
+    @Test
     fun `um digito alem do limite e recusado e o campo fica como estava`() {
         val cheio = "999.999.999.999,99"
         assertEquals(cheio, digitar("99999999999999", CASAS_DINHEIRO, DIGITOS_DINHEIRO).last())

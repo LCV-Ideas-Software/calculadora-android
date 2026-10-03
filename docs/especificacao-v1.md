@@ -244,10 +244,13 @@ só número, e o valor entra pela direita no padrão brasileiro, com o ponto de
 milhar e a vírgula automáticos. As casas são as de cada campo: 2 em reais e
 na moeda estrangeira (`123456` → `1.234,56`), 4 no VET (`57340` → `5,7340`) e
 2 nos percentuais (`350` → `3,50`). O teclado é só numérico e o cursor fica no
-fim. Apagar até sobrarem só zeros esvazia o campo, e digitar zero num campo
-vazio dá `0,00`, porque zero é um valor válido, diferente de deixar o padrão.
-O que a máscara produz é o que o `parseNumeroLocalizado` já lê; o motor não
-muda. Um parâmetro vazio vale o padrão, e o fundo do campo diz qual: "Padrão:
+fim. Apagar o último caractere até sobrarem só zeros esvazia o campo, e
+digitar zero num campo vazio dá `0,00`, porque zero é um valor válido,
+diferente de deixar o padrão; trocar o texto inteiro por zero (selecionar e
+digitar, ou o preenchimento automático) também dá `0,00`. Uma tecla que não
+muda o número, como um dígito além do limite do campo ou uma letra de teclado
+físico, não apaga o resultado já calculado. O que a máscara produz é o que o
+`parseNumeroLocalizado` já lê; o motor não muda. Um parâmetro vazio vale o padrão, e o fundo do campo diz qual: "Padrão:
 5,50%", "Padrão: 3,50% (cartão e Conta Global)", "Padrão: 0,78% (dias úteis,
 9h–17h)" e "Padrão: 1,18% (fora das 9h–17h, fins de semana e feriados)", com
 os números lidos das constantes de `Parametros`. O "Auto" de antes sugeria uma

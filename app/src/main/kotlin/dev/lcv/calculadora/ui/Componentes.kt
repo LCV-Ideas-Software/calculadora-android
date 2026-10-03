@@ -93,8 +93,10 @@ fun CampoNumerico(
         value = TextFieldValue(valor, TextRange(valor.length)),
         label = { Text(rotulo) },
         onValueChange = { novo ->
-            // Só a seleção mudou (um toque no meio do texto): nada a formatar nem a avisar.
-            if (novo.text != valor) aoMudar(mascaraDecimal(novo.text, valor, casas, maximoDeDigitos))
+            // Só avisa quando o número muda. Um toque no meio do texto, um dígito recusado no limite ou uma letra
+            // de teclado físico deixam o valor igual, e avisar assim mesmo descartaria o resultado já calculado.
+            val mascarado = mascaraDecimal(novo.text, valor, casas, maximoDeDigitos)
+            if (mascarado != valor) aoMudar(mascarado)
         },
         modifier = modifier.fillMaxWidth(),
         singleLine = true,

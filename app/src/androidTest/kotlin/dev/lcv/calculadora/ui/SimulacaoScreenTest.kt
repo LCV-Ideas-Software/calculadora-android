@@ -159,6 +159,33 @@ class SimulacaoScreenTest {
     }
 
     @Test
+    fun trocarOValorInteiroPorZeroDaZeroENaoOPadrao() {
+        montar()
+
+        val valor = compose.onNodeWithTag(Marcas.VALOR)
+        valor.performTextInput("550")
+        valor.assert(hasText("5,50"))
+        // Selecionar e digitar 0 troca o texto inteiro, e não é apagar.
+        valor.performTextReplacement("0")
+        valor.assert(hasText("0,00"))
+    }
+
+    @Test
+    fun umaTeclaQueNaoMudaONumeroMantemOResultado() {
+        montar()
+
+        compose.onNodeWithTag(Marcas.VALOR).performTextInput("100000")
+        compose.onNodeWithTag(Marcas.CALCULAR).performClick()
+        compose.waitUntil(TEMPO_LIMITE) {
+            compose.onAllNodesWithTag(Marcas.RESULTADO).fetchSemanticsNodes().isNotEmpty()
+        }
+        // Uma letra de teclado físico: a máscara a descarta e o número continua 1.000,00.
+        compose.onNodeWithTag(Marcas.VALOR).performTextInput("a")
+        compose.onNodeWithTag(Marcas.VALOR).assert(hasText("1.000,00"))
+        compose.onNodeWithTag(Marcas.RESULTADO).assertIsDisplayed()
+    }
+
+    @Test
     fun oParametroVazioMostraOPadraoQueVaiValer() {
         montar()
 

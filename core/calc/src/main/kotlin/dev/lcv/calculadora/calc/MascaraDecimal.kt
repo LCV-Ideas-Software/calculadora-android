@@ -18,7 +18,9 @@ import java.math.BigInteger
  * novo sozinho não decide:
  * - apagar até sobrarem só zeros esvazia o campo, que é o "usar o padrão" dos
  *   parâmetros; sem isso `"0,01"` apagado voltaria a `"0,00"` e o campo nunca
- *   ficaria vazio;
+ *   ficaria vazio. Apagar é tirar o último caractere, o que a tecla faz com o
+ *   cursor no fim; trocar o texto inteiro por zero (selecionar e digitar, ou o
+ *   preenchimento automático) é digitar zero, e dá `"0,00"`;
  * - um dígito além de [maximoDeDigitos] é recusado e o campo fica como estava,
  *   como um caixa que não aceita mais uma tecla.
  *
@@ -31,7 +33,8 @@ fun mascaraDecimal(novo: String, anterior: String, casas: Int, maximoDeDigitos: 
     val digitos = novo.filter { it in '0'..'9' }
     if (digitos.isEmpty()) return ""
     val significativos = digitos.trimStart('0')
-    if (significativos.isEmpty() && novo.length < anterior.length) return ""
+    val apagou = anterior.isNotEmpty() && novo == anterior.dropLast(1)
+    if (significativos.isEmpty() && apagou) return ""
     if (significativos.length > maximoDeDigitos) return anterior
     val valor = BigDecimal(BigInteger(significativos.ifEmpty { "0" }), casas)
     return Formatacao.formatador(casas).format(valor)
