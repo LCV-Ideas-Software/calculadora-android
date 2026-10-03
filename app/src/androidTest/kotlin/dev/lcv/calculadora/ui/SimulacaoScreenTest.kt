@@ -17,8 +17,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextRange
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.lcv.calculadora.calc.CotacaoSpotBruta
@@ -167,6 +169,19 @@ class SimulacaoScreenTest {
         valor.assert(hasText("5,50"))
         // Selecionar e digitar 0 troca o texto inteiro, e não é apagar.
         valor.performTextReplacement("0")
+        valor.assert(hasText("0,00"))
+    }
+
+    @Test
+    fun selecionarTudoEDigitarTrocaOValor() {
+        montar()
+
+        val valor = compose.onNodeWithTag(Marcas.VALOR)
+        valor.performTextInput("550")
+        valor.assert(hasText("5,50"))
+        // "Selecionar tudo" e depois uma tecla: a tecla troca o texto selecionado.
+        valor.performTextInputSelection(TextRange(0, "5,50".length))
+        valor.performTextInput("0")
         valor.assert(hasText("0,00"))
     }
 

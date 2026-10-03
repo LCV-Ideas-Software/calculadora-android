@@ -20,6 +20,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -76,8 +80,11 @@ fun CampoEmCaixa(
  *
  * A entrada passa pela máscara de caixa ([mascaraDecimal], CALANDR-27): só
  * dígitos, que entram pela direita com [casas] decimais e saem no padrão
- * brasileiro. O cursor fica sempre no fim: a máscara acrescenta pontos de
- * milhar, e um cursor que ficasse no meio poria o dígito seguinte fora de ordem.
+ * brasileiro. Cada mudança do número põe o cursor no fim: a máscara acrescenta
+ * pontos de milhar, e um cursor que ficasse no meio poria o dígito seguinte
+ * fora de ordem. O estado do campo (texto e seleção) fica aqui, como no modelo
+ * oficial do Compose para `TextFieldValue`, então a seleção do usuário
+ * sobrevive: "Selecionar tudo" e uma tecla trocam o valor.
  */
 @Composable
 fun CampoNumerico(
@@ -89,14 +96,23 @@ fun CampoNumerico(
     modifier: Modifier = Modifier,
     exemplo: String? = null,
 ) {
+    // A chave é o valor: quando o número muda, aqui ou por fora (restauração, limpeza), o estado recomeça com o
+    // cursor no fim; enquanto não muda, guarda a seleção do usuário.
+    var campo by remember(valor) { mutableStateOf(TextFieldValue(valor, TextRange(valor.length))) }
     OutlinedTextField(
-        value = TextFieldValue(valor, TextRange(valor.length)),
+        value = campo,
         label = { Text(rotulo) },
         onValueChange = { novo ->
-            // Só avisa quando o número muda. Um toque no meio do texto, um dígito recusado no limite ou uma letra
-            // de teclado físico deixam o valor igual, e avisar assim mesmo descartaria o resultado já calculado.
-            val mascarado = mascaraDecimal(novo.text, valor, casas, maximoDeDigitos)
-            if (mascarado != valor) aoMudar(mascarado)
+            if (novo.text == campo.text) {
+                // Só a seleção mudou: guardá-la, sem formatar nem avisar.
+                campo = novo
+            } else {
+                // Só avisa quando o número muda. Um dígito recusado no limite ou uma letra de teclado físico deixam o
+                // valor igual, e avisar assim mesmo descartaria o resultado já calculado.
+                val mascarado = mascaraDecimal(novo.text, valor, casas, maximoDeDigitos)
+                campo = TextFieldValue(mascarado, TextRange(mascarado.length))
+                if (mascarado != valor) aoMudar(mascarado)
+            }
         },
         modifier = modifier.fillMaxWidth(),
         singleLine = true,

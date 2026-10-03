@@ -15,6 +15,7 @@ All material changes to `calculadora-android` are recorded here.
   percentages (`350` → `3,50`). The keyboard is numeric and the cursor stays
   at the end; backspacing down to zeros empties the field, while typing zero
   into an empty field, or replacing the whole value with zero, gives `0,00`.
+  The user's selection is kept, so "Select all" and a key replace the value.
   A key that leaves the number unchanged (a digit past the field's limit, a
   letter from a hardware keyboard) does not clear the result already
   calculated. The mask is a pure function in
