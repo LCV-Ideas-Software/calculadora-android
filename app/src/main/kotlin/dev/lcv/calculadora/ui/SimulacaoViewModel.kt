@@ -68,7 +68,7 @@ data class EstadoTela(
 class SimulacaoViewModel @Inject constructor(
     private val simulador: Simulador,
     private val relogio: Clock,
-    private val salvo: SavedStateHandle = SavedStateHandle(),
+    private val salvo: SavedStateHandle,
 ) : ViewModel() {
 
     private var requisicao: Job? = null

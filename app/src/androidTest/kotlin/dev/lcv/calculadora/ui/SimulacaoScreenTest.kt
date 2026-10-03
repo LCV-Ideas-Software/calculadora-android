@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import dev.lcv.calculadora.calc.CotacaoSpotBruta
 import dev.lcv.calculadora.calc.FonteSpot
@@ -67,6 +68,7 @@ class SimulacaoScreenTest {
         return SimulacaoViewModel(
             simulador = Simulador(cotacoes, BacktestRepository(BacktestEmMemoria(), relogio), relogio),
             relogio = relogio,
+            salvo = SavedStateHandle(),
         )
     }
 

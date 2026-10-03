@@ -55,6 +55,32 @@ android {
         unitTests.all { it.useJUnitPlatform() }
     }
 
+    buildTypes {
+        release {
+            // R8 no build publicado: reduz, otimiza e ofusca o código e os
+            // recursos, e grava o `r8.json` no metadado do bundle, de onde a Play
+            // tira as porcentagens. Sem ele a Play acusou a otimização de código
+            // DEX abaixo do limite, com ofuscação de 1% (CALANDR-26). É a DSL do
+            // AGP 9.3+, que já inclui as regras padrão do Android; Hilt, Room,
+            // Retrofit e OkHttp trazem as suas, e o app não usa reflexão própria.
+            optimization {
+                enable = true
+            }
+        }
+        // O release minificado, assinado com a chave de depuração, só para o
+        // `:teste-release` instalar e percorrer de fora do processo (padrão
+        // oficial dos módulos de teste do build de release). A otimização é
+        // repetida aqui de propósito: o teste vale para o que a Play recebe.
+        create("minificado") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("release")
+            optimization {
+                enable = true
+            }
+        }
+    }
+
     // Release signing is injected by the publishing workflow through the
     // android.injected.signing.* properties, so no key material and no
     // password is ever written into this repository.

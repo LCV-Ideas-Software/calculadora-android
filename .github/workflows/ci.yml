@@ -84,8 +84,12 @@ jobs:
       - name: Enable emulator acceleration
         run: sudo chmod a+rw /dev/kvm
 
+      # `:teste-release` drives the R8-minified build (`minificado`) from outside
+      # its process with UI Automator: the debug tests above use fakes and
+      # cannot catch what R8 breaks at run time (CALANDR-26).
       - name: Instrumented tests on Android 14
         run: >-
           ./gradlew :core:data:pixel2api34DebugAndroidTest :app:pixel2api34DebugAndroidTest
+          :teste-release:pixel2api34MinificadoAndroidTest
           -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
           --no-daemon --stacktrace

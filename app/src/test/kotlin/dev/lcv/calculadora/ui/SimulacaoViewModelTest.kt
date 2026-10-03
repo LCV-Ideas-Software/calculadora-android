@@ -4,6 +4,7 @@
  */
 package dev.lcv.calculadora.ui
 
+import androidx.lifecycle.SavedStateHandle
 import dev.lcv.calculadora.calc.CotacaoSpotBruta
 import dev.lcv.calculadora.calc.ErroEntrada
 import dev.lcv.calculadora.calc.FonteSpot
@@ -72,6 +73,7 @@ class SimulacaoViewModelTest {
         return SimulacaoViewModel(
             simulador = Simulador(cotacoes, BacktestRepository(backtestDao, relogio), relogio),
             relogio = relogio,
+            salvo = SavedStateHandle(),
         )
     }
 

@@ -252,6 +252,26 @@ não é evidência de nada.
 
 A interface tem testes de Compose para os fluxos principais.
 
+O build publicado sai do R8 (CALANDR-26), e os testes acima rodam no debug, com
+dublês: não exercitam o que o R8 pode quebrar em execução. Por isso o módulo
+`:teste-release` instala o build `minificado` do `:app` (o release, assinado
+com a chave de depuração) e o percorre de fora do processo dele com o UI
+Automator, que é o caminho oficial para testar o build otimizado: a abertura
+(o grafo do Hilt), a simulação com cotação ao vivo (Retrofit, OkHttp e JSON), o
+modo cobrado em reais e a tela de licenças (os `assets`). Roda na CI, no mesmo
+Pixel 2 com API 34 dos outros testes de aparelho.
+
+O aplicativo mostra o mesmo aviso de cotações indisponíveis para a fonte fora do
+ar e para uma falha dele, e o título do cartão aparece mesmo sem cotação. Por
+isso o teste sonda cada fonte por conta própria, nos endereços que o aplicativo
+consulta, e toda fonte que responde tem de aparecer pelo nome no resultado:
+"PTAX do Banco Central" no cartão, AwesomeAPI ou Yahoo Finance na conta global.
+Sem fonte alguma respondendo, o teste se declara pulado, e não verde. Os dados do
+aplicativo são limpos antes de cada fluxo, para uma cotação guardada não se
+passar por uma lida da rede. Foi conferido com dois controles: com o aplicativo
+derrubado ao abrir, os três fluxos caem; com a leitura do JSON devolvendo nada,
+cai a simulação.
+
 ## 9. Privacidade e publicação
 
 Sem inteligência artificial e sem envio de e-mail, **o aplicativo não coleta

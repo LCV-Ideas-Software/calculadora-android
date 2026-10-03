@@ -6,6 +6,38 @@ All material changes to `calculadora-android` are recorded here.
 
 ### Changed
 
+- Turn on R8 for the release build (CALANDR-26). Play Console flagged 1.0.1
+  with "DEX code optimization below our threshold": obfuscation at 1%, no R8
+  metadata in the bundle, 25.6 MB of uncompressed DEX. From February 2027
+  Play expects at least 25% optimization, obfuscation and shrinking for apps
+  above 10 MB of DEX. The release build type now uses the AGP 9.3+
+  `optimization { enable = true }` DSL, which shrinks, optimizes and
+  obfuscates code and resources with the Android default rules; Hilt, Room,
+  Retrofit and OkHttp ship their own, and the app has no reflection of its
+  own, so no project rule is added. Measured on the local bundle: the
+  `r8.json` Play reads now reports 98.2% obfuscation, 97.2% optimization and
+  98.1% shrinking, the uncompressed DEX drops to 2.55 MB, and the mapping
+  file travels in the bundle. The minified release APK was driven on an
+  emulator through the calculation with live quotes, the sensitivity and
+  backtest results, the DCC mode and the licenses screen, with no crash.
+  CI now drives the minified build too: the new `:teste-release` module
+  (`com.android.test`, self-instrumenting, UI Automator 2.4.0) installs the
+  `minificado` build type of `:app` — the release, signed with the debug key —
+  and runs the opening, the simulation with live quotes, the DCC mode and the
+  licenses screen from outside the app's process, on the same Pixel 2 API 34
+  managed device as the other instrumented tests. The app shows the same "no
+  quotes" notice for a source that is down and for its own failure, so the
+  test probes each quote source itself, at the addresses the app uses: every
+  source that answers must appear by name in the result ("PTAX do Banco
+  Central" on the card, AwesomeAPI or Yahoo Finance on the global account),
+  and with no source answering the test is skipped, not passed. App data is
+  cleared before each journey, so a stored quote cannot pass for a live one.
+  Controls: a crash on launch fails all three journeys; JSON reading that
+  returns nothing fails the simulation.
+- `SimulacaoViewModel` no longer defaults its `SavedStateHandle` to the
+  no-argument constructor, which AndroidX reserves for tests. Hilt always
+  injected the real one in the app; the two tests that relied on the default
+  now pass it explicitly, and lint reports no warning on debug or release.
 - Record that CodeQL now analyzes the Kotlin code (CALANDR-14, step 1). On
   24/09/2026 the Default setup added `java-kotlin`, built with autobuild, on
   CodeQL 2.27.1, the first version that supports Kotlin 2.4.20; the first
@@ -112,9 +144,9 @@ Google review/publication remains observable through its API, not inferred from 
 
 ## [1.0.0] — 20/09/2026
 
-First public release: the native port is complete, `:core:calc` + `:core:data`
-+ `:app`, and the Google Play store listing is filled. Everything below shipped
-in this version.
+First public release: the native port is complete, `:core:calc` +
+`:core:data` + `:app`, and the Google Play store listing is filled. Everything
+below shipped in this version.
 
 ### Added
 
