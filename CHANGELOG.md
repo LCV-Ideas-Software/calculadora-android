@@ -4,6 +4,8 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+## [1.0.2] — 03/10/2026
+
 ### Added
 
 - Every numeric field formats its input in the Brazilian format as it is
@@ -79,6 +81,16 @@ All material changes to `calculadora-android` are recorded here.
   build mode cannot extract it. The placeholder remains, by the operator's
   decision of 24/09/2026, until Code Quality covers Kotlin; removing it is
   still CALANDR-14's step 2.
+
+### Fixed
+
+- Preserve the CC-BY 2.5 attribution of the four jsr305 3.0.2 classes that
+  ship in the app (`javax.annotation.concurrent` `GuardedBy`, `Immutable`,
+  `NotThreadSafe` and `ThreadSafe`, © 2005 Brian Goetz), which the published
+  POM declares as Apache-2.0 while their source headers grant CC-BY 2.5. The
+  credit, license URI and full CC-BY 2.5 text are in `NOTICE`, which the
+  licenses screen shows, and `THIRDPARTY.md` explains the per-file license
+  (CALANDR-29, #81).
 
 ## [1.0.1] — 21/09/2026
 
