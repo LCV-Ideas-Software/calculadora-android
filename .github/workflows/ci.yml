@@ -88,8 +88,25 @@ jobs:
       # its process with UI Automator: the debug tests above use fakes and
       # cannot catch what R8 breaks at run time (CALANDR-26).
       - name: Instrumented tests on Android 14
+        id: instrumented
         run: >-
           ./gradlew :core:data:pixel2api34DebugAndroidTest :app:pixel2api34DebugAndroidTest
           :teste-release:pixel2api34MinificadoAndroidTest
           -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
           --no-daemon --stacktrace
+
+      # Gradle does not fail on a skipped test, so this check is green whether the
+      # live-quote flow ran or was skipped, and the job log carries no logcat. The
+      # `:teste-release` report records each flow as passed, failed or skipped, and
+      # its per-test logcat holds the quote-source probes; every run keeps it,
+      # failed runs included (CALANDR-28). `!cancelled()` is the documented
+      # alternative to `always()` for running regardless of the outcome.
+      - name: Keep the minified-build test report
+        if: ${{ !cancelled() && steps.instrumented.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: teste-release-report
+          path: |
+            teste-release/build/outputs/androidTest-results/managedDevice/
+            teste-release/build/reports/androidTests/managedDevice/
+          if-no-files-found: error
