@@ -7,6 +7,7 @@ package dev.lcv.calculadora.teste.release
 import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
+import android.view.KeyEvent
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.By
@@ -104,8 +105,12 @@ class AplicativoMinificadoTest {
     }
 
     private fun preencherOValorECalcular() {
-        // Máscara de caixa: os dígitos entram pelos centavos, e "10000" vira 100,00.
-        achar(By.clazz("android.widget.EditText")).text = "10000"
+        // Teclas de verdade, pelo caminho da tecla física (CALANDR-27): os dígitos entram pelos centavos, e
+        // 1 e quatro 0 viram 100,00, lido de volta antes de calcular.
+        achar(By.clazz("android.widget.EditText")).click()
+        aparelho.pressKeyCode(KeyEvent.KEYCODE_1)
+        repeat(4) { aparelho.pressKeyCode(KeyEvent.KEYCODE_0) }
+        assertNotNull("o campo não mostrou 100,00 depois das teclas", aparelho.wait(Until.findObject(By.text("100,00")), ESPERA))
         esconderOTeclado()
         tocarNoFormulario(By.text(CALCULAR))
     }

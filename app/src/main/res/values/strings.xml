@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Textos medidos no produto web (`calculadora-app/src/components` e
-  `functions/api/compra-reais.mjs`), não reescritos: o port se parece com a
-  origem também nas palavras. Os emojis fazem parte desses rótulos no web e
-  carregam sentido, então acompanham; a marca da LCV entra no cabeçalho, no
-  lugar do logotipo que o web usa ali.
+  Os textos que o produto web também mostra foram medidos nele
+  (`calculadora-app/src/components` e `functions/api/compra-reais.mjs`), não
+  reescritos: o port se parece com a origem também nas palavras. Os emojis
+  fazem parte desses rótulos no web e carregam sentido, então acompanham; a
+  marca da LCV entra no cabeçalho, no lugar do logotipo que o web usa ali.
+
+  Nem todo texto daqui existe no web: a tela de licenças, as mensagens de
+  validação e de falha, as fontes das cotações e o padrão dos parâmetros, entre
+  outros, foram escritos para o aplicativo (conferido em 03/10/2026). Os do
+  padrão dos parâmetros vão marcados "Só do Android" abaixo.
 -->
 <resources>
     <!-- Nome público do aplicativo, em todo lugar que a pessoa vê: lançador,
@@ -38,10 +43,12 @@
     <string name="parametro_iof_cartao">IOF Cartão (%)</string>
     <string name="parametro_spread_global_aberto">Spread Global Aberto (%)</string>
     <string name="parametro_spread_global_fechado">Spread Global Fechado (%)</string>
+    <!-- Só do Android (CALANDR-27): o web mostra "Auto" nesses campos. O percentual vem das constantes de
+         `Parametros` e as horas de `ContextoOperacional`, nunca copiados à mão. -->
     <string name="parametro_padrao">Padrão: %1$s</string>
     <string name="parametro_padrao_iof">Padrão: %1$s (cartão e Conta Global)</string>
-    <string name="parametro_padrao_aberto">Padrão: %1$s (dias úteis, 9h–17h)</string>
-    <string name="parametro_padrao_fechado">Padrão: %1$s (fora das 9h–17h, fins de semana e feriados)</string>
+    <string name="parametro_padrao_aberto">Padrão: %1$s (dias úteis, %2$dh–%3$dh, horário de Brasília)</string>
+    <string name="parametro_padrao_fechado">Padrão: %1$s (fora das %2$dh–%3$dh de Brasília, fins de semana e feriados)</string>
 
     <string name="exemplo_valor">1.000,00</string>
     <string name="exemplo_fatura">1.035,00</string>

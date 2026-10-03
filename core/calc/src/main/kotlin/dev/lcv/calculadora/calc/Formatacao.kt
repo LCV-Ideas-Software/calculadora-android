@@ -14,7 +14,7 @@ object Formatacao {
     private val PT_BR: Locale = Locale.forLanguageTag("pt-BR")
     private const val AUSENTE = "—"
 
-    internal fun formatador(casas: Int): DecimalFormat {
+    private fun formatador(casas: Int): DecimalFormat {
         val padrao = "#,##0." + "0".repeat(casas)
         return DecimalFormat(padrao, DecimalFormatSymbols.getInstance(PT_BR)).apply {
             roundingMode = Escalas.MODO

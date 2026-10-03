@@ -57,6 +57,9 @@ androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activity-compose" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+# A simulação oficial da morte do processo para o `ViewModel` (`ViewModelScenario.recreate()`); só nos testes
+# instrumentados, porque no Android ela passa o estado por um `Parcel` de verdade.
+androidx-lifecycle-viewmodel-testing = { module = "androidx.lifecycle:lifecycle-viewmodel-testing", version.ref = "androidx-lifecycle" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "androidx-hilt-navigation-compose" }
 
 [plugins]

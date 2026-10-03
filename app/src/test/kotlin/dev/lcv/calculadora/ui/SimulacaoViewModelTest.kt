@@ -4,6 +4,8 @@
  */
 package dev.lcv.calculadora.ui
 
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.lifecycle.SavedStateHandle
 import dev.lcv.calculadora.calc.CotacaoSpotBruta
 import dev.lcv.calculadora.calc.ErroEntrada
@@ -30,6 +32,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -44,6 +47,10 @@ import kotlinx.coroutines.test.setMain
  * O ViewModel roda na JVM contra um `Simulador` real montado sobre DAOs e
  * provedores em memória: o que se prova aqui é a ligação entre o formulário e o
  * motor, não a aritmética, que é do `:core:calc`.
+ *
+ * Os campos numéricos guardam dígitos crus (CALANDR-27): os testes escrevem
+ * neles pelo `edit` público do `TextFieldState`, que não passa pela
+ * transformação da tela, e por isso escrevem só o que ela deixaria passar.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SimulacaoViewModelTest {
@@ -60,7 +67,7 @@ class SimulacaoViewModelTest {
     private val ultimoSpot = UltimoSpotEmMemoria()
     private val backtestDao = BacktestEmMemoria()
 
-    private fun viewModel(): SimulacaoViewModel {
+    private fun viewModel(salvo: SavedStateHandle = SavedStateHandle()): SimulacaoViewModel {
         val cotacoes = CotacoesRepository(
             provedorPtax = ProvedorPtax { _, _ ->
                 if (explodir) throw java.io.IOException("sem rede") else ptaxDaFonte
@@ -73,9 +80,13 @@ class SimulacaoViewModelTest {
         return SimulacaoViewModel(
             simulador = Simulador(cotacoes, BacktestRepository(backtestDao, relogio), relogio),
             relogio = relogio,
-            salvo = SavedStateHandle(),
+            salvo = salvo,
         )
     }
+
+    /** O estado que a tela mostra: o guardado, conferido contra os campos de agora. */
+    private val SimulacaoViewModel.visivel: EstadoTela
+        get() = estado.value.visivelCom(entradasAtuais())
 
     @BeforeTest
     fun ligarDespachante() {
@@ -96,27 +107,27 @@ class SimulacaoViewModelTest {
     fun `valor vazio nao chama o motor e acusa o erro do formulario`() = runTest(despachante) {
         val vm = viewModel()
         vm.calcular()
-        assertEquals(ErroEntrada.VALOR_INVALIDO, vm.estado.value.erro)
-        assertNull(vm.estado.value.simulacao)
+        assertEquals(ErroEntrada.VALOR_INVALIDO, vm.visivel.erro)
+        assertNull(vm.visivel.simulacao)
     }
 
     @Test
-    fun `valor negativo tambem e recusado`() = runTest(despachante) {
+    fun `valor zero explicito tambem e recusado`() = runTest(despachante) {
         val vm = viewModel()
-        vm.mudarValor("-10")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("0")
         vm.calcular()
-        assertEquals(ErroEntrada.VALOR_INVALIDO, vm.estado.value.erro)
+        assertEquals(ErroEntrada.VALOR_INVALIDO, vm.visivel.erro)
     }
 
     @Test
     fun `simulacao valida produz as duas modalidades e registra o backtest`() = runTest(despachante) {
         val vm = viewModel()
-        vm.mudarValor("100")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("10000")
         vm.calcular()
-        assertTrue(vm.estado.value.carregando, "o estado de carregamento aparece antes da resposta")
+        assertTrue(vm.visivel.carregando, "o estado de carregamento aparece antes da resposta")
         testScheduler.advanceUntilIdle()
 
-        val estado = vm.estado.value
+        val estado = vm.visivel
         assertEquals(false, estado.carregando)
         val resultado = assertNotNull(estado.simulacao)
         assertTrue(resultado.simulacao.cartao is Modalidade.Suportada)
@@ -126,12 +137,12 @@ class SimulacaoViewModelTest {
     }
 
     @Test
-    fun `valor em formato brasileiro e aceito`() = runTest(despachante) {
+    fun `o cru do campo entra no motor com as casas dele`() = runTest(despachante) {
         val vm = viewModel()
-        vm.mudarValor("1.234,56")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("123456")
         vm.calcular()
         testScheduler.advanceUntilIdle()
-        val resultado = assertNotNull(vm.estado.value.simulacao)
+        val resultado = assertNotNull(vm.visivel.simulacao)
         assertEquals(BigDecimal("1234.56"), resultado.simulacao.entrada.valorOriginal)
     }
 
@@ -139,26 +150,26 @@ class SimulacaoViewModelTest {
     fun `sem PTAX a modalidade volta indisponivel, sem falha de tela`() = runTest(despachante) {
         ptaxDaFonte = null
         val vm = viewModel()
-        vm.mudarValor("100")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("10000")
         vm.calcular()
         testScheduler.advanceUntilIdle()
 
-        val resultado = assertNotNull(vm.estado.value.simulacao)
+        val resultado = assertNotNull(vm.visivel.simulacao)
         val cartao = resultado.simulacao.cartao
         assertTrue(cartao is Modalidade.Indisponivel)
         assertEquals(MotivoIndisponibilidade.PTAX_INDISPONIVEL, cartao.motivo)
-        assertEquals(false, vm.estado.value.falhou)
+        assertEquals(false, vm.visivel.falhou)
     }
 
     @Test
     fun `moeda sem conta global mostra o motivo, e nao um numero`() = runTest(despachante) {
         val vm = viewModel()
         vm.mudarMoeda("GBP")
-        vm.mudarValor("100")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("10000")
         vm.calcular()
         testScheduler.advanceUntilIdle()
 
-        val global = assertNotNull(vm.estado.value.simulacao).simulacao.global
+        val global = assertNotNull(vm.visivel.simulacao).simulacao.global
         assertTrue(global is Modalidade.Indisponivel)
         assertEquals(MotivoIndisponibilidade.MOEDA_SEM_CONTA_GLOBAL, global.motivo)
     }
@@ -167,65 +178,162 @@ class SimulacaoViewModelTest {
     fun `falha inesperada vira estado de falha, e nao derruba a tela`() = runTest(despachante) {
         explodir = true
         val vm = viewModel()
-        vm.mudarValor("100")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("10000")
         vm.calcular()
         testScheduler.advanceUntilIdle()
 
-        assertTrue(vm.estado.value.falhou)
-        assertNull(vm.estado.value.simulacao)
-        assertEquals(false, vm.estado.value.carregando)
-    }
-
-    @Test
-    fun `editar qualquer entrada limpa o resultado anterior`() = runTest(despachante) {
-        val vm = viewModel()
-        vm.mudarValor("100")
-        vm.calcular()
-        testScheduler.advanceUntilIdle()
-        assertNotNull(vm.estado.value.simulacao)
-
-        vm.mudarValor("200")
-        assertNull(vm.estado.value.simulacao, "um resultado de outro valor ao lado do formulário mentiria")
-        assertNull(vm.estado.value.erro)
+        assertTrue(vm.visivel.falhou)
+        assertNull(vm.visivel.simulacao)
+        assertEquals(false, vm.visivel.carregando)
     }
 
     @Test
     fun `modo cobrado em reais dispensa rede e devolve os tres cenarios`() = runTest(despachante) {
         val vm = viewModel()
         vm.mudarModo(Modo.COBRADO_EM_REAIS)
-        vm.mudarValor("1000")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("100000")
         vm.calcular()
 
-        val analise = assertNotNull(vm.estado.value.compraEmReais)
+        val analise = assertNotNull(vm.visivel.compraEmReais)
         assertEquals(BigDecimal("1000.00"), analise.adquirenciaLocal.totalBrl)
         assertEquals(BigDecimal("1035.00"), analise.dccPura.totalBrl, "1000 × (1 + IOF 3,5%)")
         assertNull(analise.diagnostico, "sem valor de fatura não há diagnóstico reverso")
-        assertNull(vm.estado.value.simulacao, "o modo em reais não chama o motor de câmbio")
+        assertNull(vm.visivel.simulacao, "o modo em reais não chama o motor de câmbio")
+    }
+
+    @Test
+    fun `o zero explicito no IOF vale zero, e nao o padrao`() = runTest(despachante) {
+        val vm = viewModel()
+        vm.mudarModo(Modo.COBRADO_EM_REAIS)
+        vm.campoValor.setTextAndPlaceCursorAtEnd("100000")
+        vm.campoIof.setTextAndPlaceCursorAtEnd("0")
+        vm.calcular()
+        assertEquals(BigDecimal("1000.00"), assertNotNull(vm.visivel.compraEmReais).dccPura.totalBrl)
     }
 
     @Test
     fun `o valor da fatura produz o diagnostico reverso`() = runTest(despachante) {
         val vm = viewModel()
         vm.mudarModo(Modo.COBRADO_EM_REAIS)
-        vm.mudarValor("1000")
-        vm.mudarValorFatura("1035")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("100000")
+        vm.campoFatura.setTextAndPlaceCursorAtEnd("103500")
         vm.calcular()
 
-        val diagnostico = assertNotNull(assertNotNull(vm.estado.value.compraEmReais).diagnostico)
+        val diagnostico = assertNotNull(assertNotNull(vm.visivel.compraEmReais).diagnostico)
         assertEquals(BigDecimal("1035.00"), diagnostico.valorFaturaBrl)
+    }
+
+    @Test
+    fun `no modo cobrado em reais os spreads da conta global nao contam`() = runTest(despachante) {
+        val vm = viewModel()
+        vm.mudarModo(Modo.COBRADO_EM_REAIS)
+        vm.campoValor.setTextAndPlaceCursorAtEnd("100000")
+        // 999,99% seria recusado no modo de simulação; aqui o campo nem aparece e o motor o ignora.
+        vm.campoSpreadAberto.setTextAndPlaceCursorAtEnd("99999")
+        vm.calcular()
+        assertNull(vm.visivel.erro)
+        assertNotNull(vm.visivel.compraEmReais)
+    }
+
+    @Test
+    fun `um percentual acima de cem e recusado`() = runTest(despachante) {
+        val vm = viewModel()
+        vm.campoValor.setTextAndPlaceCursorAtEnd("100000")
+        vm.campoSpreadCartao.setTextAndPlaceCursorAtEnd("10000")
+        vm.calcular()
+        assertNull(vm.visivel.erro, "100,00% é o limite aceito")
+        vm.campoSpreadCartao.setTextAndPlaceCursorAtEnd("10001")
+        vm.calcular()
+        assertEquals(ErroEntrada.PARAMETRO_INVALIDO, vm.visivel.erro)
+    }
+
+    @Test
+    fun `o opcional zero e recusado`() = runTest(despachante) {
+        val vm = viewModel()
+        vm.campoValor.setTextAndPlaceCursorAtEnd("10000")
+        vm.campoVet.setTextAndPlaceCursorAtEnd("0")
+        vm.calcular()
+        assertEquals(ErroEntrada.OPCIONAL_INVALIDO, vm.visivel.erro)
     }
 
     @Test
     fun `trocar de modo limpa o resultado do modo anterior`() = runTest(despachante) {
         val vm = viewModel()
-        vm.mudarValor("100")
+        vm.campoValor.setTextAndPlaceCursorAtEnd("10000")
         vm.calcular()
         testScheduler.advanceUntilIdle()
-        assertNotNull(vm.estado.value.simulacao)
+        assertNotNull(vm.visivel.simulacao)
 
         vm.mudarModo(Modo.COBRADO_EM_REAIS)
-        assertNull(vm.estado.value.simulacao)
-        assertNull(vm.estado.value.compraEmReais)
+        assertNull(vm.visivel.simulacao)
+        assertNull(vm.visivel.compraEmReais)
+        vm.mudarModo(Modo.SIMULACAO)
+        assertNull(vm.visivel.simulacao, "data, modo e moeda apagam o resultado de vez")
+    }
+
+    // A21 — a validade do resultado acompanha os campos, em qualquer momento (decisão 13 do operador).
+    @Test
+    fun `o resultado acompanha os campos em qualquer momento`() = runTest(despachante) {
+        val vm = viewModel()
+        vm.campoValor.edit { replace(0, length, "100000") }
+        vm.calcular()
+        testScheduler.advanceUntilIdle()
+        val resultadoA = assertNotNull(vm.visivel.simulacao, "o resultado do primeiro cálculo aparece")
+        assertEquals(BigDecimal("1000.00"), resultadoA.simulacao.entrada.valorOriginal)
+
+        vm.campoValor.edit { replace(0, length, "200000") }
+        assertNull(vm.visivel.simulacao, "outro número esconde o resultado")
+        vm.calcular()
+        testScheduler.advanceUntilIdle()
+        val resultadoB = assertNotNull(vm.visivel.simulacao, "o resultado do segundo cálculo aparece")
+        assertEquals(BigDecimal("2000.00"), resultadoB.simulacao.entrada.valorOriginal)
+
+        // Nenhuma notificação de aplicação foi bombeada até aqui: a comparação não depende dela.
+        vm.campoValor.edit { replace(0, length, "100000") }
+        assertNull(vm.visivel.simulacao, "voltar ao número do primeiro cálculo não mostra o resultado do segundo")
+        Snapshot.sendApplyNotifications()
+        testScheduler.advanceUntilIdle()
+        assertNull(vm.visivel.simulacao, "e continua escondido depois de bombear")
+
+        vm.campoValor.edit { replace(0, length, "200000") }
+        assertEquals(resultadoB, vm.visivel.simulacao, "voltar ao número calculado mostra o resultado, sem calcular")
+    }
+
+    @Test
+    fun `o erro do formulario tambem acompanha os campos`() = runTest(despachante) {
+        val vm = viewModel()
+        vm.calcular()
+        assertEquals(ErroEntrada.VALOR_INVALIDO, vm.visivel.erro)
+        vm.campoValor.edit { replace(0, length, "1") }
+        assertNull(vm.visivel.erro, "o erro é do número que foi calculado")
+        vm.campoValor.edit { replace(0, length, "") }
+        assertEquals(ErroEntrada.VALOR_INVALIDO, vm.visivel.erro, "voltar a ele mostra o erro de novo")
+    }
+
+    @Test
+    fun `editar um numero durante o calculo nao cancela, e o resultado chega marcado com os numeros dele`() =
+        runTest(despachante) {
+            val vm = viewModel()
+            vm.campoValor.setTextAndPlaceCursorAtEnd("10000")
+            vm.calcular()
+            vm.campoValor.setTextAndPlaceCursorAtEnd("20000")
+            assertFalse(vm.visivel.carregando, "o carregamento é do número antigo")
+            testScheduler.advanceUntilIdle()
+            assertNull(vm.visivel.simulacao)
+            vm.campoValor.setTextAndPlaceCursorAtEnd("10000")
+            assertEquals(BigDecimal("100.00"), assertNotNull(vm.visivel.simulacao).simulacao.entrada.valorOriginal)
+        }
+
+    // Decisão 6 do operador: as chaves da 1.0.1 guardavam texto livre; são ignoradas e apagadas.
+    @Test
+    fun `as chaves da versao anterior sao ignoradas e apagadas`() {
+        val salvo = SavedStateHandle(mapOf("valor" to "100", "iof" to "12.345678", "data" to "2026-09-17"))
+        val vm = viewModel(salvo)
+        assertEquals("", vm.campoValor.text.toString())
+        assertEquals("", vm.campoIof.text.toString())
+        assertFalse("valor" in salvo)
+        assertFalse("iof" in salvo)
+        assertEquals(LocalDate.of(2026, 9, 17), vm.estado.value.dataCompra, "a data continua na chave dela")
     }
 }
 

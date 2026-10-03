@@ -14,26 +14,24 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.maxLength
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldLabelPosition
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.lcv.calculadora.calc.mascaraDecimal
 
 /**
  * Os átomos visuais do produto web, traduzidos para componentes nativos: o
@@ -78,44 +76,37 @@ fun CampoEmCaixa(
 /**
  * `glass-input`: campo claro, cantos de 12 dp, foco na cor de destaque da marca.
  *
- * A entrada passa pela máscara de caixa ([mascaraDecimal], CALANDR-27): só
- * dígitos, que entram pela direita com [casas] decimais e saem no padrão
- * brasileiro. Cada mudança do número põe o cursor no fim: a máscara acrescenta
- * pontos de milhar, e um cursor que ficasse no meio poria o dígito seguinte
- * fora de ordem. O estado do campo (texto e seleção) fica aqui, como no modelo
- * oficial do Compose para `TextFieldValue`, então a seleção do usuário
- * sobrevive: "Selecionar tudo" e uma tecla trocam o valor.
+ * O campo numérico de caixa (CALANDR-27): o [estado] guarda só os dígitos, que
+ * [DigitosDeCaixa] aceita pela direita, e [FormatoDeCaixa] os mostra no padrão
+ * brasileiro com as casas do [tipo]. Edição, seleção, teclado, área de
+ * transferência, acessibilidade, desfazer e salvamento são da plataforma.
+ *
+ * Com [exemploParado], o rótulo fica sempre recolhido acima, para o [exemplo]
+ * aparecer também com o campo parado e vazio: é o "Padrão: x%" dos parâmetros
+ * (decisão 7 do operador). Nos campos de valor, o exemplo ("1.000,00") só
+ * aparece com o campo em foco, para não ser lido como um valor digitado
+ * (decisão do operador, 03/10/2026).
  */
 @Composable
 fun CampoNumerico(
-    valor: String,
-    aoMudar: (String) -> Unit,
+    estado: TextFieldState,
     rotulo: String,
-    casas: Int,
-    maximoDeDigitos: Int,
+    tipo: TipoNumerico,
     modifier: Modifier = Modifier,
     exemplo: String? = null,
+    exemploParado: Boolean = false,
 ) {
-    // A chave é o valor: quando o número muda, aqui ou por fora (restauração, limpeza), o estado recomeça com o
-    // cursor no fim; enquanto não muda, guarda a seleção do usuário.
-    var campo by remember(valor) { mutableStateOf(TextFieldValue(valor, TextRange(valor.length))) }
+    // O limite vem depois da regra, para uma colagem formatada ser reduzida a dígitos antes de ser contada.
+    val entrada = remember(tipo) { DigitosDeCaixa.maxLength(tipo.maximoDeDigitos) }
+    val saida = remember(tipo) { FormatoDeCaixa(tipo.casas) }
     OutlinedTextField(
-        value = campo,
+        state = estado,
         label = { Text(rotulo) },
-        onValueChange = { novo ->
-            if (novo.text == campo.text) {
-                // Só a seleção mudou: guardá-la, sem formatar nem avisar.
-                campo = novo
-            } else {
-                // Só avisa quando o número muda. Um dígito recusado no limite ou uma letra de teclado físico deixam o
-                // valor igual, e avisar assim mesmo descartaria o resultado já calculado.
-                val mascarado = mascaraDecimal(novo.text, valor, casas, maximoDeDigitos)
-                campo = TextFieldValue(mascarado, TextRange(mascarado.length))
-                if (mascarado != valor) aoMudar(mascarado)
-            }
-        },
+        labelPosition = TextFieldLabelPosition.Attached(alwaysMinimize = exemploParado),
+        inputTransformation = entrada,
+        outputTransformation = saida,
         modifier = modifier.fillMaxWidth(),
-        singleLine = true,
+        lineLimits = TextFieldLineLimits.SingleLine,
         placeholder = exemplo?.let { { Text(it, color = Tema.cores.textoApagado) } },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         shape = RoundedCornerShape(Tema.formas.campo),
