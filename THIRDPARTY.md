@@ -73,3 +73,19 @@ GitHub native auto-merge; it does not add a custom application or controller.
 The original repository content is licensed under GNU AGPL-3.0-or-later; see
 [LICENSE](LICENSE) and [NOTICE](NOTICE). Third-party licenses apply only to
 their respective components.
+
+
+## Per-file license clarification: jsr305 3.0.2
+
+`jsr305:3.0.2` is a transitive runtime dependency of Hilt. Its published POM
+declares Apache-2.0, but the exact published source headers of
+`javax.annotation.concurrent.GuardedBy`, `Immutable`, `NotThreadSafe` and
+`ThreadSafe` grant **CC-BY-2.5** and state `Copyright (c) 2005 Brian Goetz`.
+Those four classes are present in the released application. The original
+credit, license URI and full CC-BY-2.5 text are retained in [NOTICE](NOTICE).
+This clarification applies to those files; it does not replace the license
+of the application or flatten all of jsr305 to one license.
+
+Exact source artifact: https://repo.maven.apache.org/maven2/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2-sources.jar
+License: https://creativecommons.org/licenses/by/2.5/
+Original header's official home: http://www.jcip.net
