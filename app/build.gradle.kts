@@ -22,9 +22,10 @@ android {
         // nativo, sem core library desugaring.
         minSdk = 34
         targetSdk = 37
-        // 1.0.0/code 2 enviado à trilha production, ainda em revisão; correções pós-auditoria.
-        versionCode = 3
-        versionName = "1.0.1"
+        // 1.0.1/code 3 publicado na trilha production (confirmado em 02/10/2026); a 1.0.2 leva o R8
+        // (CALANDR-26) e os campos de caixa (CALANDR-27).
+        versionCode = 4
+        versionName = "1.0.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

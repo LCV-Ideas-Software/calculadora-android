@@ -15,6 +15,8 @@ decisão do operador de 19/09/2026) e o package name `dev.lcv.calculadora`. Não
 assinatura é injetado em tempo de build pelo fluxo de publicação.
 
 A versão 1.0.1 corrige a auditoria pós-porte: [contratos e evidências](docs/correcoes-v1.0.1.md).
+A 1.0.2 traz os campos numéricos que formatam a entrada no padrão brasileiro enquanto se digita e o build
+publicado otimizado pelo R8 (veja o [CHANGELOG](CHANGELOG.md)).
 O fluxo de [publicação e revisão na Google Play](docs/publicacao-play.md) distingue
 envio, análise e distribuição efetiva. A CI também testa Room/Compose na API mínima 34.
 

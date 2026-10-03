@@ -1,7 +1,7 @@
-Correções de estabilidade e confiabilidade.
+Os campos de valor e de percentual formatam o número enquanto você digita, no padrão brasileiro: os dígitos entram pelos centavos, com ponto de milhar e vírgula automáticos.
 
-Resultados antigos não reaparecem após editar o formulário. Validação de números e parâmetros reforçada, com restauração das entradas após interrupções.
+Os parâmetros vazios mostram o valor padrão que será usado.
 
-PTAX somente de fechamento; cotações spot com prazo de validade e data visível. Comparação diária sem amostras repetidas ou de períodos diferentes.
+O resultado acompanha os números: ao voltar aos valores calculados, ele reaparece.
 
-Melhorias de contraste, identificação dos campos, valores em reais, sensibilidade e compartilhamento.
+Aplicativo otimizado e menor.
