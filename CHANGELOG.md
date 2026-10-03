@@ -4,6 +4,18 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Fixed
+
+- With the software keyboard open, the whole window was pushed up and the
+  app header slid under the status bar, cut and overlapping the clock. It
+  happened in 1.0.1 too, measured on its debug build at Pixel 2 width. The
+  activity now declares `android:windowSoftInputMode="adjustResize"`, as the
+  official edge-to-edge setup asks, so the keyboard reaches the app as an
+  inset instead of panning the window. The scrolling container applies
+  `consumeWindowInsets` with the `Scaffold` padding and then `imePadding()`,
+  so the content stops above the keyboard without padding the navigation bar
+  twice (CALANDR-31).
+
 ## [1.0.2] — 03/10/2026
 
 ### Added

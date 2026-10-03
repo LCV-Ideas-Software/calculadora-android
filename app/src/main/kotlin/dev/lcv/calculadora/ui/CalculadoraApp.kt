@@ -10,7 +10,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -75,6 +77,10 @@ fun CalculadoraApp(viewModel: SimulacaoViewModel = hiltViewModel()) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(espacamento)
+                // O recuo do Scaffold já cobre as barras do sistema; o do teclado acrescenta só o que ele ocupa a
+                // mais, para o campo em foco rolar para cima dele (CALANDR-31, com `adjustResize` no manifesto).
+                .consumeWindowInsets(espacamento)
+                .imePadding()
                 .indicadorDeRolagem(rolagem)
                 .verticalScroll(rolagem)
                 .padding(horizontal = 16.dp, vertical = 8.dp),

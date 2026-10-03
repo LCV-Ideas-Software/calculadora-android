@@ -14,9 +14,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Calculadora">
+        <!-- `adjustResize`: com a tela de ponta a ponta, o teclado chega ao app como recuo (`imePadding` no
+             `CalculadoraApp`), em vez de empurrar a janela inteira para baixo da barra de status (CALANDR-31). -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Calculadora">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
