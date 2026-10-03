@@ -4,6 +4,7 @@
  */
 package dev.lcv.calculadora.teste.release
 
+import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -14,12 +15,16 @@ import androidx.test.uiautomator.Direction
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.regex.Pattern
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.regex.Pattern
 
 /**
  * Os fluxos críticos do aplicativo minificado pelo R8 (CALANDR-26), de fora do
@@ -38,23 +43,46 @@ class AplicativoMinificadoTest {
 
     @Before
     fun abrir() {
+        // Dados limpos a cada fluxo: uma cotação guardada no Room se passaria por uma lida da rede.
+        aparelho.executeShellCommand("pm clear $PACOTE")
         aparelho.pressHome()
         val intencao = instrumentacao.context.packageManager.getLaunchIntentForPackage(PACOTE)
         assertNotNull("o aplicativo $PACOTE não está instalado", intencao)
-        intencao!!.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK or android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+        intencao!!.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
         instrumentacao.context.startActivity(intencao)
         assertTrue("o aplicativo não abriu", aparelho.wait(Until.hasObject(By.pkg(PACOTE).depth(0)), ESPERA))
         achar(By.text(CALCULAR))
     }
 
+    /**
+     * O aviso de que as cotações não vieram é o mesmo para a fonte fora do ar e para uma falha do próprio
+     * aplicativo — inclusive a que o R8 causaria no Retrofit, no JSON ou no Room —, e o título do cartão aparece
+     * mesmo com a cotação indisponível (revisão da #74). Por isso o teste sonda as fontes por conta própria: a
+     * que responde obriga o aplicativo a mostrar a cotação dela, pelo rótulo da fonte, que só existe com a cotação
+     * disponível. Sem fonte alguma, o teste confere que o aplicativo não caiu e se declara pulado, não verde.
+     */
     @Test
-    fun aSimulacaoComCotacaoAoVivoMostraOResultadoOuOAvisoDoProprioAplicativo() {
+    fun aSimulacaoMostraACotacaoDeCadaFonteQueResponde() {
+        val ptax = responde(OLINDA) || responde(CSV_BCB)
+        val cambio = responde(AWESOME) || responde(YAHOO)
+        Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio=$cambio")
         preencherOValorECalcular()
-        // Sem rede, ou com a fonte fora do ar, o aplicativo avisa; os dois desfechos provam que o minificado não caiu.
-        val desfecho = esperarRolando(By.text(Pattern.compile("$CARTAO|$SEM_COTACAO")), ESPERA_REDE)
-        assertNotNull("nem resultado nem aviso depois de calcular", desfecho)
-        // Diz no logcat da CI qual caminho rodou: com o resultado, a rede, o Retrofit e o JSON foram exercitados.
-        Log.i(ROTULO, "desfecho da simulação: ${desfecho!!.text}")
+        if (!ptax && !cambio) {
+            assertNotNull("nem resultado nem aviso depois de calcular", esperarRolando(By.text(Pattern.compile("$CARTAO|$SEM_COTACAO")), ESPERA_REDE))
+            assertTrue("o processo do aplicativo morreu", processoVivo())
+            assumeTrue("nenhuma fonte de cotação respondeu ao teste: a rede do minificado não foi exercitada", false)
+        }
+        if (ptax) {
+            assertNotNull(
+                "a PTAX respondeu ao teste, mas o cartão não mostrou a cotação do Banco Central",
+                esperarRolando(By.text(FONTE_PTAX), ESPERA_REDE),
+            )
+        }
+        if (cambio) {
+            val fonte = esperarRolando(By.text(Pattern.compile("$FONTE_AWESOME|$FONTE_YAHOO")), ESPERA_REDE)
+            assertNotNull("o câmbio respondeu ao teste, mas a Conta Global não mostrou a AwesomeAPI nem o Yahoo", fonte)
+            Log.i(ROTULO, "a Conta Global usou: ${fonte!!.text}")
+        }
         assertTrue("o processo do aplicativo morreu", processoVivo())
     }
 
@@ -106,15 +134,36 @@ class AplicativoMinificadoTest {
         achar(seletor).click()
     }
 
-    /** Espera o elemento rolando a tela: o resultado nasce abaixo do botão, e o UI Automator só vê o que está na tela. */
+    /**
+     * Espera o elemento rolando a tela, porque o UI Automator só vê o que está nela: desce até o fim e volta, até
+     * o prazo, já que a ordem dos cartões depende de qual sai mais barato.
+     */
     private fun esperarRolando(seletor: BySelector, espera: Long): UiObject2? {
         val limite = SystemClock.uptimeMillis() + espera
+        var sentido = Direction.DOWN
         while (SystemClock.uptimeMillis() < limite) {
             aparelho.findObject(seletor)?.let { return it }
-            aparelho.findObject(By.scrollable(true))?.scroll(Direction.DOWN, 0.5f)
+            val rolou = aparelho.findObject(By.scrollable(true))?.scroll(sentido, 0.5f) ?: false
+            if (!rolou) sentido = if (sentido == Direction.DOWN) Direction.UP else Direction.DOWN
             SystemClock.sleep(500)
         }
         return null
+    }
+
+    /** A fonte responde ao próprio teste, pelos mesmos endereços que o aplicativo consulta. */
+    private fun responde(endereco: String): Boolean = try {
+        val conexao = URL(endereco).openConnection() as HttpURLConnection
+        conexao.connectTimeout = 15_000
+        conexao.readTimeout = 15_000
+        conexao.setRequestProperty("User-Agent", "calculadora-android-teste-release")
+        try {
+            conexao.responseCode == HttpURLConnection.HTTP_OK
+        } finally {
+            conexao.disconnect()
+        }
+    } catch (erro: IOException) {
+        Log.i(ROTULO, "a fonte $endereco não respondeu ao teste: $erro")
+        false
     }
 
     private fun processoVivo(): Boolean = aparelho.executeShellCommand("pidof $PACOTE").isNotBlank()
@@ -133,5 +182,18 @@ class AplicativoMinificadoTest {
         const val DUPLA_CONVERSAO = "Dupla conversão (spread + IOF)"
         const val LICENCAS = "Licenças"
         const val COPYRIGHT = "Copyright © 2026 LCV Ideas & Software"
+
+        // Os rótulos de fonte só aparecem com a cotação disponível (`CartaoComparacao`); "Último valor salvo" e
+        // "PTAX (contingência)" são reservas da Conta Global e não provam a rede.
+        const val FONTE_PTAX = "PTAX do Banco Central"
+        const val FONTE_AWESOME = "AwesomeAPI"
+        const val FONTE_YAHOO = "Yahoo Finance"
+
+        // Os mesmos endereços e caminhos de `Fontes.kt` (`:core:data`), com uma data já publicada.
+        const val OLINDA = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/" +
+            "CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='09-30-2026'&\$top=1&\$format=json"
+        const val CSV_BCB = "https://www4.bcb.gov.br/Download/fechamento/20260930.csv"
+        const val AWESOME = "https://economia.awesomeapi.com.br/json/last/USD-BRL"
+        const val YAHOO = "https://query1.finance.yahoo.com/v8/finance/chart/BRL=X"
     }
 }

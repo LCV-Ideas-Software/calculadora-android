@@ -2,9 +2,12 @@
 <!--
   O teste roda no próprio processo e precisa enxergar o aplicativo para abri-lo:
   desde o Android 11, um pacote só vê outro declarado aqui (visibilidade de
-  pacotes), como no manifesto da amostra oficial de Macrobenchmark.
+  pacotes), como no manifesto da amostra oficial de Macrobenchmark. A internet é
+  do próprio teste, que sonda as fontes de cotação antes de exigir o resultado.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <queries>
         <package android:name="dev.lcv.calculadora" />
     </queries>

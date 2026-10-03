@@ -23,11 +23,17 @@ All material changes to `calculadora-android` are recorded here.
   CI now drives the minified build too: the new `:teste-release` module
   (`com.android.test`, self-instrumenting, UI Automator 2.4.0) installs the
   `minificado` build type of `:app` — the release, signed with the debug key —
-  and runs the opening, the simulation with live quotes (the result or the
-  app's own notice, since CI does not control the network), the DCC mode and
-  the licenses screen from outside the app's process, on the same Pixel 2 API
-  34 managed device as the other instrumented tests. A control that crashes
-  the app on launch fails all three.
+  and runs the opening, the simulation with live quotes, the DCC mode and the
+  licenses screen from outside the app's process, on the same Pixel 2 API 34
+  managed device as the other instrumented tests. The app shows the same "no
+  quotes" notice for a source that is down and for its own failure, so the
+  test probes each quote source itself, at the addresses the app uses: every
+  source that answers must appear by name in the result ("PTAX do Banco
+  Central" on the card, AwesomeAPI or Yahoo Finance on the global account),
+  and with no source answering the test is skipped, not passed. App data is
+  cleared before each journey, so a stored quote cannot pass for a live one.
+  Controls: a crash on launch fails all three journeys; JSON reading that
+  returns nothing fails the simulation.
 - `SimulacaoViewModel` no longer defaults its `SavedStateHandle` to the
   no-argument constructor, which AndroidX reserves for tests. Hilt always
   injected the real one in the app; the two tests that relied on the default
