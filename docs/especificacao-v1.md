@@ -26,11 +26,12 @@ já existe no web. O que não se reproduz com honestidade num aparelho — desfo
 de fundo ao vivo, animação permanente atrás do conteúdo — é registrado como
 desvio declarado, nunca trocado em silêncio.
 
-São quatro, e só quatro, os desvios de aparência do `:app`. Os dois primeiros
-vêm da entrega (CALANDR-16). Os dois últimos vêm da correção do selo do cartão
-vencedor, por decisões do operador em 03 e 04/10/2026 (CALANDR-32), e só
-aparecem com fonte grande ou tela estreita; no tamanho padrão, eles não
-aparecem.
+São seis, e só seis, os desvios de aparência do `:app`. Os dois primeiros
+vêm da entrega (CALANDR-16). O terceiro e o quarto vêm da correção do selo do
+cartão vencedor, por decisões do operador em 03 e 04/10/2026 (CALANDR-32), e
+só aparecem com fonte grande ou tela estreita; no tamanho padrão, eles não
+aparecem. Os dois últimos são de cor, para o texto passar no contraste mínimo
+AA (4,5:1), por decisões do operador em 04/10/2026 (CALANDR-34).
 
 1. **Não há a tela de partículas animada atrás do conteúdo.** O web anima um
    `canvas` permanente no fundo. Num telefone isso mantém a GPU e o
@@ -58,6 +59,15 @@ aparecem.
    (`@ExperimentalFlexBoxApi`), e o operador decidiu, em 04/10/2026, manter o
    `FlowRow`. Até a 1.0.2, a linha media o rótulo primeiro e deixava ao valor
    só a sobra, que o partia ao meio ("R$ 5.896,|40").
+5. **O texto da pílula da qualidade do backtest é um tom mais escuro que o do
+   web.** Os fundos são os do web; o texto usa o tom 800 da mesma cor (#166534,
+   #854D0E, #991B1B) no lugar do 700 do web (#15803D, #A16207, #B91C1C). No
+   fundo do painel, o tom do web deixa "🏆 Excelente" com 4,0:1 e "✅ Boa" com
+   4,2:1.
+6. **Os rótulos do cartão de cenário mantêm o cinza dos rótulos do app.**
+   "Total em Reais" e "Acréscimo sobre o preço" usam o #475569, com o tamanho e
+   o peso do web. Sobre o fundo dos cartões de cenário, o `text-slate-500` do
+   web (#62748E) fica de 4,2 a 4,4:1.
 
 Tudo o mais que difere é imposto pela plataforma, não escolhido: barra superior
 e conteúdo de largura cheia no lugar do painel centralizado que o navegador

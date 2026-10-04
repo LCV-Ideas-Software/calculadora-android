@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,7 +49,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.dropShadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -57,7 +65,10 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.DpOffset
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.lcv.calculadora.R
@@ -104,7 +115,16 @@ object Marcas {
     const val CARTAO_SALDO = "resultado-saldo-existente"
     const val SELO = "selo-vencedor"
     const val MELHOR_OPCAO = "pilula-melhor-opcao"
+    const val PLANTAO = "pilula-plantao"
+    const val CONTINGENCIA = "pilula-contingencia"
+    const val QUALIDADE = "pilula-qualidade-backtest"
     const val CENARIOS = "cenarios-em-reais"
+    const val CARTAO_CENARIO = "cartao-cenario"
+    const val ICONE_CENARIO = "icone-cenario"
+    const val TITULO_CENARIO = "titulo-cenario"
+    const val PROVAVEL = "pilula-provavel"
+    const val ROTULO_CENARIO = "rotulo-cenario"
+    const val VALOR_CENARIO = "valor-cenario"
     const val DCC = "caixa-dcc"
     const val CABECALHO = "cabecalho"
 }
@@ -590,15 +610,30 @@ private fun CartaoResultado(
     }
 }
 
+/**
+ * O selo do web: `text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md`. A sombra do `shadow-md` é `0 4px 6px
+ * -1px` e `0 2px 4px -2px`, preto a 10%. No CSS, o desfoque tem desvio-padrão de metade do raio (CSS Backgrounds 3,
+ * §6.1.2); no Android, o raio do `dropShadow` vai para o `BlurMaskFilter`, que usa raio / √3 + 0,5 px de desvio-padrão
+ * (`MaskFilter.cpp` do AOSP). Por isso cada raio aqui é a metade do raio do CSS vezes √3; sobra meio pixel de desfoque a
+ * mais, que não se vê.
+ */
 @Composable
 private fun SeloVencedor(modifier: Modifier = Modifier) {
+    val forma = RoundedCornerShape(percent = 50)
     Pilula(
         texto = stringResource(R.string.selo_vencedor),
-        fundo = Tema.cores.vencedor,
-        cor = Tema.cores.vencedorTexto,
-        modifier = modifier.shadow(3.dp, RoundedCornerShape(percent = 50)),
+        fundo = Tema.cores.seloFundo,
+        cor = Tema.cores.seloTexto,
+        peso = FontWeight.ExtraBold,
+        recuo = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+        modifier = modifier
+            .dropShadow(forma, Shadow(5.196.dp, SOMBRA_DO_SELO, spread = (-1).dp, offset = DpOffset(0.dp, 4.dp)))
+            .dropShadow(forma, Shadow(3.464.dp, SOMBRA_DO_SELO, spread = (-2).dp, offset = DpOffset(0.dp, 2.dp))),
     )
 }
+
+/** O preto a 10% do `shadow-md`, que o CSS publicado grava como `#0000001a`. */
+private val SOMBRA_DO_SELO = Color(0x1A000000)
 
 /**
  * Com a fonte grande o selo do canto cresce para baixo e passa a descer sobre a primeira linha do cartão. O título
@@ -675,6 +710,14 @@ private val AVANCO_DO_SELO = 9.dp
 /** O vão entre o fim do título e o selo, quando o título reserva espaço para ele. */
 private val ESPACO_ANTES_DO_SELO = 8.dp
 
+/**
+ * O vão do web entre a linha do VET e as pílulas de plantão e contingência (ComparisonCard.tsx). A linha do VET tem
+ * 10 px de margem embaixo (`space-y-2.5`), e a pílula, `inline-block` numa linha de 20 px de uma fonte de 14 px
+ * (`text-sm`), começa 2,2 px abaixo do topo dessa linha: pelas métricas da Roboto, a linha sobe 14,8 px acima da linha
+ * de base, e a pílula, 12,6 px. São 12,2 px no total.
+ */
+private val VAO_DO_VET = 12.dp
+
 @Composable
 private fun Custo(custo: CustoConversao) {
     Linha(
@@ -697,16 +740,34 @@ private fun Indicadores(modalidade: Modalidade.Suportada) {
         modalidade.fonteSpot == FonteSpot.PTAX_CONTINGENCIA
     if (modalidade.plantao == true || contingencia) {
         // Como os `inline-block` do web: a pílula que não cabe ao lado da outra desce para a linha de baixo, em vez de
-        // ser espremida até partir a palavra (CALANDR-32).
+        // ser espremida até partir a palavra (CALANDR-32). O `ml-1` do web é margem da própria pílula de contingência:
+        // 4 dp à esquerda dela, ao lado do Plantão, sozinha ou na linha de baixo. Quando quebram, o `space-y-2.5` do
+        // contêiner dá 10 px de margem embaixo do Plantão, e a linha do `text-sm` em volta soma 2,2 px: 12 dp entre as
+        // duas. O mesmo `space-y-2.5` afasta as pílulas da linha do VET; o recuo de cima completa o vão da coluna do
+        // cartão até a distância do web (VAO_DO_VET).
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(top = VAO_DO_VET - Tema.espacos.entreLinhas),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // As pílulas de 10 px herdam a razão de linha do `text-sm` do contêiner: 1,25 / 0,875 da fonte.
+            val linha = (1.25f / 0.875f).em
             if (modalidade.plantao == true) {
-                Pilula(stringResource(R.string.pilula_plantao), Tema.cores.destaqueSaldo, Tema.cores.textoNorm)
+                Pilula(
+                    stringResource(R.string.pilula_plantao),
+                    Tema.cores.plantaoFundo,
+                    Tema.cores.plantaoTexto,
+                    modifier = Modifier.testTag(Marcas.PLANTAO),
+                    alturaDaLinha = linha,
+                )
             }
             if (contingencia) {
-                Pilula(stringResource(R.string.pilula_contingencia), Tema.cores.destaqueSaldo, Tema.cores.textoNorm)
+                Pilula(
+                    stringResource(R.string.pilula_contingencia),
+                    Tema.cores.contingenciaFundo,
+                    Tema.cores.contingenciaTexto,
+                    modifier = Modifier.padding(start = 4.dp).testTag(Marcas.CONTINGENCIA),
+                    alturaDaLinha = linha,
+                )
             }
         }
     }
@@ -762,15 +823,21 @@ private fun PainelBacktest(resumo: ResumoBacktest, simulacao: Simulacao) {
         }
         Linha(stringResource(R.string.backtest_observacoes), resumo.observacoes.toString(), apagado = true)
         resumo.qualidade?.let { qualidade ->
+            val (fundo, cor) = when (qualidade) {
+                QualidadeBacktest.EXCELENTE -> Tema.cores.qualidadeExcelenteFundo to Tema.cores.qualidadeExcelenteTexto
+                QualidadeBacktest.BOA -> Tema.cores.qualidadeBoaFundo to Tema.cores.qualidadeBoaTexto
+                QualidadeBacktest.ATENCAO -> Tema.cores.qualidadeAtencaoFundo to Tema.cores.qualidadeAtencaoTexto
+            }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                // `px-3 py-1 rounded-full text-xs font-bold` do web: 12 px de fonte e linha de 16 px.
                 Pilula(
                     texto = stringResource(rotuloDaQualidade(qualidade)),
-                    fundo = when (qualidade) {
-                        QualidadeBacktest.EXCELENTE -> Tema.cores.destaqueGlobal
-                        QualidadeBacktest.BOA -> Tema.cores.destaqueCartao
-                        QualidadeBacktest.ATENCAO -> Tema.cores.destaqueSaldo
-                    },
-                    cor = Tema.cores.textoNorm,
+                    fundo = fundo,
+                    cor = cor,
+                    modifier = Modifier.testTag(Marcas.QUALIDADE),
+                    tamanho = 12.sp,
+                    alturaDaLinha = (16f / 12f).em,
+                    recuo = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
         }
@@ -836,12 +903,34 @@ private fun CompraEmReais(analise: AnaliseCompraEmReais, valorEmReais: BigDecima
 @Composable
 private fun CartaoCenario(cenario: CenarioCusto, provavel: CenarioCompraEmReais?) {
     val destaque = provavel == cenario.cenario
+    val contorno = Tema.cores.cenarioProvavelContorno
+    val raio = Tema.formas.cartao
     CartaoVidro(
-        tinta = if (destaque) Tema.cores.destaqueSaldo else androidx.compose.ui.graphics.Color.Transparent,
-        destacado = destaque,
+        // O cenário provável tem o `outline` de 2 px do web: por fora da borda, sem ocupar espaço e acompanhando o
+        // canto arredondado.
+        modifier = Modifier
+            .testTag(Marcas.CARTAO_CENARIO)
+            .then(
+                if (destaque) {
+                    Modifier.drawBehind {
+                        val largura = 2.dp.toPx()
+                        drawRoundRect(
+                            color = contorno,
+                            topLeft = Offset(-largura / 2, -largura / 2),
+                            size = Size(size.width + largura, size.height + largura),
+                            cornerRadius = CornerRadius(raio.toPx() + largura / 2),
+                            style = Stroke(largura),
+                        )
+                    }
+                } else {
+                    Modifier
+                },
+            ),
+        tinta = if (destaque) Tema.cores.cenarioProvavelFundo else Tema.cores.cenarioFundo,
     ) {
         // Como no web (`ml-auto` no cabeçalho do cenário, CompraReaisPanel.tsx): a pílula é medida primeiro e mantém a
-        // largura dela; o título fica com o resto e quebra entre palavras (CALANDR-32).
+        // largura dela; o título fica com o resto e quebra entre palavras (CALANDR-32). O ícone é `text-lg` (18 px,
+        // linha de 28 px) e o título `text-sm font-bold text-slate-700` (14 px, linha de 20 px).
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -852,29 +941,97 @@ private fun CartaoCenario(cenario: CenarioCusto, provavel: CenarioCompraEmReais?
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(stringResource(iconeDoCenario(cenario.cenario)), fontSize = 16.sp)
+                Text(
+                    text = stringResource(iconeDoCenario(cenario.cenario)),
+                    modifier = Modifier.testTag(Marcas.ICONE_CENARIO),
+                    fontSize = 18.sp,
+                    lineHeight = 28.sp,
+                    letterSpacing = 0.sp,
+                )
                 Text(
                     text = stringResource(rotuloDoCenario(cenario.cenario)),
+                    modifier = Modifier.testTag(Marcas.TITULO_CENARIO),
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = Tema.cores.textoNorm,
+                    lineHeight = 20.sp,
+                    letterSpacing = 0.sp,
+                    color = Tema.cores.cenarioTexto,
                 )
             }
             if (destaque) {
-                Pilula(stringResource(R.string.pilula_provavel), Tema.cores.vencedor, Tema.cores.vencedorTexto)
+                Pilula(
+                    stringResource(R.string.pilula_provavel),
+                    Tema.cores.provavelFundo,
+                    Tema.cores.provavelTexto,
+                    modifier = Modifier.testTag(Marcas.PROVAVEL),
+                )
             }
         }
-        Linha(stringResource(R.string.rotulo_total), "R$ " + Formatacao.reais(cenario.totalBrl), forte = true)
-        Linha(
-            stringResource(R.string.rotulo_acrescimo),
-            "+ R$ " + Formatacao.reais(cenario.custoAdicionalBrl) +
+        LinhaDoCenario(
+            rotulo = stringResource(R.string.rotulo_total),
+            valor = "R$ " + Formatacao.reais(cenario.totalBrl),
+            tamanhoDoValor = 18.sp,
+            linhaDoValor = 28.sp,
+            pesoDoValor = FontWeight.ExtraBold,
+            corDoValor = Tema.cores.cenarioTotal,
+        )
+        LinhaDoCenario(
+            rotulo = stringResource(R.string.rotulo_acrescimo),
+            valor = "+ R$ " + Formatacao.reais(cenario.custoAdicionalBrl) +
                 " (" + Formatacao.reais(cenario.custoAdicionalPercent) + "%)",
+            tamanhoDoValor = 12.sp,
+            linhaDoValor = 16.sp,
+            pesoDoValor = FontWeight.SemiBold,
+            corDoValor = Tema.cores.cenarioTexto,
         )
         Text(
             text = stringResource(descricaoDoCenario(cenario.cenario)),
             fontSize = 11.sp,
             lineHeight = 15.sp,
             color = Tema.cores.textoApagado,
+        )
+    }
+}
+
+/**
+ * As duas linhas do cartão de cenário com os tamanhos do web (CompraReaisPanel.tsx): o rótulo em `text-xs` regular, com
+ * o espaçamento normal entre letras, e o valor alinhado a ele pela linha de base, como o `items-baseline` do total. O
+ * rótulo fica no cinza dos rótulos do Android: o `text-slate-500` do web cai abaixo do contraste AA no cartão provável
+ * (desvio declarado, decisão do operador de 04/10/2026). Quebra como a [Linha]: o valor fica ao lado do rótulo e quebra
+ * entre palavras, ou desce inteiro se nem a maior palavra dele couber.
+ */
+@Composable
+private fun LinhaDoCenario(
+    rotulo: String,
+    valor: String,
+    tamanhoDoValor: TextUnit,
+    linhaDoValor: TextUnit,
+    pesoDoValor: FontWeight,
+    corDoValor: Color,
+) {
+    FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(
+            text = rotulo,
+            modifier = Modifier
+                .testTag(Marcas.ROTULO_CENARIO)
+                .alignByBaseline(),
+            fontSize = 12.sp,
+            lineHeight = 16.sp,
+            letterSpacing = 0.sp,
+            color = Tema.cores.textoFraco,
+        )
+        Text(
+            text = valor,
+            modifier = Modifier
+                .testTag(Marcas.VALOR_CENARIO)
+                .weight(1f)
+                .alignByBaseline(),
+            fontSize = tamanhoDoValor,
+            lineHeight = linhaDoValor,
+            letterSpacing = 0.sp,
+            fontWeight = pesoDoValor,
+            color = corDoValor,
+            textAlign = TextAlign.End,
         )
     }
 }

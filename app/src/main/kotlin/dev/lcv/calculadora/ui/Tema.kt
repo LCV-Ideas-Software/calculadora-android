@@ -57,12 +57,39 @@ data class CoresLcv(
     val destaqueGlobal: Color,
     val destaqueSaldo: Color,
     val vencedor: Color,
-    val vencedorTexto: Color,
     // A pílula da melhor opção, abaixo dos cartões: `bg-green-50 text-green-800 border-green-200` do web. O Tailwind 4
     // define esses tons em OKLCH; aqui estão convertidos para sRGB, onde os três cabem sem ajuste.
     val melhorOpcaoFundo: Color,
     val melhorOpcaoTexto: Color,
     val melhorOpcaoBorda: Color,
+    // O selo "⭐ MELHOR": `bg-amber-400 text-amber-900` do web (ComparisonCard.tsx). O âmbar 400 do Tailwind 4 fica fora
+    // do sRGB; o tom aqui é o que sobra ao cortá-lo para o sRGB, o mesmo que o navegador mostra numa tela sRGB.
+    val seloFundo: Color,
+    val seloTexto: Color,
+    // As pílulas pequenas do web: "provável" em `bg-orange-100 text-orange-700` (CompraReaisPanel.tsx), "🌙 Plantão" em
+    // `bg-amber-100 text-amber-800` e "⚡ Contingência" em `bg-orange-100 text-orange-800` (ComparisonCard.tsx).
+    val provavelFundo: Color,
+    val provavelTexto: Color,
+    val plantaoFundo: Color,
+    val plantaoTexto: Color,
+    val contingenciaFundo: Color,
+    val contingenciaTexto: Color,
+    // A qualidade do backtest (BacktestPanel.tsx): os fundos do web e, no texto, o tom 800 da mesma cor no lugar do 700
+    // do web, com o qual "Excelente" e "Boa" ficam abaixo do contraste AA (desvio declarado na especificação, decisão
+    // do operador de 04/10/2026).
+    val qualidadeExcelenteFundo: Color,
+    val qualidadeExcelenteTexto: Color,
+    val qualidadeBoaFundo: Color,
+    val qualidadeBoaTexto: Color,
+    val qualidadeAtencaoFundo: Color,
+    val qualidadeAtencaoTexto: Color,
+    // O cartão de cenário do modo cobrado em reais (CompraReaisPanel.tsx): o fundo de todos, o do provável e o contorno
+    // dele, o `text-slate-700` do título e do valor do acréscimo e o `text-slate-900` do total.
+    val cenarioFundo: Color,
+    val cenarioProvavelFundo: Color,
+    val cenarioProvavelContorno: Color,
+    val cenarioTexto: Color,
+    val cenarioTotal: Color,
 ) {
     companion object {
         val Claro = CoresLcv(
@@ -85,10 +112,31 @@ data class CoresLcv(
             destaqueGlobal = Color(0x1A34D399),
             destaqueSaldo = Color(0x1AF59E0B),
             vencedor = Color(0xFFF59E0B),
-            vencedorTexto = Color(0xFF101827),
             melhorOpcaoFundo = Color(0xFFF0FDF4),
             melhorOpcaoTexto = Color(0xFF016630),
             melhorOpcaoBorda = Color(0xFFB9F8CF),
+            seloFundo = Color(0xFFFFB900),
+            seloTexto = Color(0xFF7B3306),
+            provavelFundo = Color(0xFFFFEDD4),
+            provavelTexto = Color(0xFFCA3500),
+            plantaoFundo = Color(0xFFFEF3C6),
+            plantaoTexto = Color(0xFF973C00),
+            contingenciaFundo = Color(0xFFFFEDD4),
+            contingenciaTexto = Color(0xFF9F2D00),
+            // `rgba(22,163,74,0.12)`, `rgba(234,179,8,0.12)` e `rgba(220,38,38,0.12)` no web. Os textos do web são os
+            // tons 700 da escala hexadecimal do Tailwind 3 (#15803D, #A16207, #B91C1C); aqui, os 800 da mesma escala.
+            qualidadeExcelenteFundo = Color(0xFF16A34A).copy(alpha = 0.12f),
+            qualidadeExcelenteTexto = Color(0xFF166534),
+            qualidadeBoaFundo = Color(0xFFEAB308).copy(alpha = 0.12f),
+            qualidadeBoaTexto = Color(0xFF854D0E),
+            qualidadeAtencaoFundo = Color(0xFFDC2626).copy(alpha = 0.12f),
+            qualidadeAtencaoTexto = Color(0xFF991B1B),
+            // `rgba(51,65,85,0.04)`; o provável, `rgba(234,88,12,0.08)` com `outline: 2px solid rgba(234,88,12,0.5)`.
+            cenarioFundo = Color(0xFF334155).copy(alpha = 0.04f),
+            cenarioProvavelFundo = Color(0xFFEA580C).copy(alpha = 0.08f),
+            cenarioProvavelContorno = Color(0xFFEA580C).copy(alpha = 0.5f),
+            cenarioTexto = Color(0xFF314158),
+            cenarioTotal = Color(0xFF0F172B),
         )
     }
 }

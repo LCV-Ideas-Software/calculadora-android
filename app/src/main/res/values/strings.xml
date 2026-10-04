@@ -103,13 +103,13 @@
     <string name="banda_pessimista">🔴 Pessimista</string>
     <string name="vet_entre_parenteses">(VET %1$s)</string>
 
-    <string name="backtest_titulo">🧪 Comparação diária (7 dias)</string>
-    <string name="backtest_mape">Desvio médio (MAPE)</string>
-    <string name="backtest_erro_atual">Diferença atual</string>
+    <string name="backtest_titulo">🧪 Backtest (7 dias)</string>
+    <string name="backtest_mape">MAPE 7d</string>
+    <string name="backtest_erro_atual">Erro atual</string>
     <string name="backtest_observacoes">Observações</string>
-    <string name="qualidade_excelente">Diferença baixa</string>
-    <string name="qualidade_boa">Diferença moderada</string>
-    <string name="qualidade_atencao">Diferença elevada</string>
+    <string name="qualidade_excelente">🏆 Excelente</string>
+    <string name="qualidade_boa">✅ Boa</string>
+    <string name="qualidade_atencao">⚠️ Atenção</string>
 
     <string name="em_reais_titulo">🇧🇷 Compra internacional cobrada em reais</string>
     <string name="em_reais_intro">Preço no checkout: R$ %1$s. Quando um lojista estrangeiro cobra em BRL, o custo final depende de como a transação foi liquidada. Veja os três cenários possíveis:</string>
