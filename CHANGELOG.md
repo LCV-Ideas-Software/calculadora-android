@@ -2,6 +2,8 @@
 
 All material changes to `calculadora-android` are recorded here.
 
+## [Unreleased]
+
 ## [1.0.3] — 04/10/2026
 
 ### Changed
