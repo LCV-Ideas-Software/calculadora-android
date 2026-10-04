@@ -106,6 +106,7 @@ object Marcas {
     const val MELHOR_OPCAO = "pilula-melhor-opcao"
     const val CENARIOS = "cenarios-em-reais"
     const val DCC = "caixa-dcc"
+    const val CABECALHO = "cabecalho"
 }
 
 @Composable

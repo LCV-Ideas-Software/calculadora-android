@@ -22,9 +22,13 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -37,8 +41,11 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.then
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.text.AnnotatedString
@@ -49,6 +56,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.SavedStateHandle
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.lcv.calculadora.R
@@ -899,6 +907,73 @@ class SimulacaoScreenTest {
         assertTextoInteiro("R$ 5.608,03", "o total da Conta Global")
         assertSeloSemSobreposicao(contexto.getString(R.string.cartao_global), cartaoDeCima = Marcas.CARTAO_CARTAO)
         assertNumaLinha(contexto.getString(R.string.acao_escolher_data), "o botão da data")
+    }
+
+    // CALANDR-35 — a barra superior é o começo do conteúdo e rola com ele, como o cabeçalho do web: sai ao descer e só
+    // volta no topo. Com a fonte no máximo numa tela estreita ela tem um quarto da altura, e fixa tomava esse espaço o
+    // tempo todo. Os gestos são de toque, dentro do contêiner rolável: num aparelho de ponta a ponta, a borda de baixo
+    // da raiz é o recuo da barra de navegação, fora dele.
+
+    /** O título do cabeçalho: o mesmo texto aparece no NOTICE, que a tela de licenças mostra. */
+    private fun tituloDoCabecalho() =
+        compose.onNode(hasText(contexto.getString(R.string.titulo)) and hasAnyAncestor(hasTestTag(Marcas.CABECALHO)))
+
+    /** O contêiner rolável do aplicativo, o único que leva o rodapé. */
+    private fun conteudo() =
+        compose.onNode(hasScrollAction() and hasAnyDescendant(hasText(contexto.getString(R.string.compliance))))
+
+    /** O nó inteiro na tela: a caixa recortada pelos pais tem a altura do próprio nó. */
+    private fun assertInteiro(no: SemanticsNodeInteraction, nome: String) {
+        val semantica = no.assertIsDisplayed().fetchSemanticsNode()
+        assertEquals("altura visível de $nome", semantica.size.height.toFloat(), semantica.boundsInRoot.height, 0.5f)
+    }
+
+    /** No topo: o cabeçalho inteiro e, logo abaixo dele, a primeira caixa do formulário inteira. */
+    private fun assertTopoDaSimulacao() {
+        assertInteiro(tituloDoCabecalho(), "o título do cabeçalho")
+        assertInteiro(compose.onNodeWithTag(Marcas.DCC), "a caixa do DCC")
+    }
+
+    @Test
+    fun comAFonteNoMaximoEmTelaEstreitaOCabecalhoSaiAoRolarESoVoltaNoTopo() {
+        montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
+        assertTopoDaSimulacao()
+
+        conteudo().performTouchInput { swipeUp() }
+        compose.onNodeWithText(contexto.getString(R.string.compliance)).performScrollTo()
+        tituloDoCabecalho().assertIsNotDisplayed()
+
+        // Um gesto lento para baixo, a partir do rodapé, sem chegar ao topo: o cabeçalho não volta no meio da página.
+        conteudo().performTouchInput {
+            swipeDown(startY = top + height * 0.25f, endY = top + height * 0.6f, durationMillis = 1_000)
+        }
+        tituloDoCabecalho().assertIsNotDisplayed()
+
+        // Um gesto pode não chegar ao topo de uma tela longa: até dez, parando quando o cabeçalho reaparece.
+        repeat(10) { if (!tituloDoCabecalho().isDisplayed()) conteudo().performTouchInput { swipeDown() } }
+        assertTopoDaSimulacao()
+    }
+
+    @Test
+    fun aoVoltarDasLicencasASimulacaoApareceNoTopoComOCabecalhoInteiro() {
+        montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
+        compose.onNodeWithText(contexto.getString(R.string.acao_licencas)).performClick()
+        conteudo().performTouchInput { swipeUp() }
+        tituloDoCabecalho().assertIsNotDisplayed()
+
+        Espresso.pressBack()
+        assertTopoDaSimulacao()
+    }
+
+    @Test
+    fun umGestoQueComecaNoCabecalhoRolaAPagina() {
+        // O `TopAppBar` do Material 3 traz um `pointerInput` próprio; um gesto que começa em cima dele ainda tem de
+        // rolar a página, como no web. A pré-condição prova que o cabeçalho existe: sem ela, a asserção final também
+        // passaria se a marca sumisse.
+        montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
+        assertInteiro(tituloDoCabecalho(), "o título do cabeçalho")
+        compose.onNodeWithTag(Marcas.CABECALHO).performTouchInput { swipeUp() }
+        tituloDoCabecalho().assertIsNotDisplayed()
     }
 }
 

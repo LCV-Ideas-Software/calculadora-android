@@ -63,7 +63,11 @@ Tudo o mais que difere é imposto pela plataforma, não escolhido: barra superio
 e conteúdo de largura cheia no lugar do painel centralizado que o navegador
 desenha numa janela larga, diálogo de data do Material no lugar do
 `<input type="date">`, e a folha de compartilhamento do Android no lugar do
-botão de copiar para a área de transferência.
+botão de copiar para a área de transferência. A barra superior é o começo do
+conteúdo e rola com ele, como o cabeçalho do web: sai ao descer e só volta no
+topo. Com o teclado aberto, quando o campo em foco precisa subir, ela rola
+junto, como no web, e nunca fica por baixo da barra de status (decisão do
+operador de 04/10/2026, CALANDR-35).
 
 ## 2. Escopo
 

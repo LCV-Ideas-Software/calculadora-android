@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -67,7 +69,6 @@ fun CalculadoraApp(viewModel: SimulacaoViewModel = hiltViewModel()) {
         modifier = Modifier.background(
             Brush.verticalGradient(listOf(Tema.cores.fundoNorm, Tema.cores.fundoBaixo)),
         ),
-        topBar = { BarraSuperior(emLicencas) { emLicencas = !emLicencas } },
     ) { espacamento ->
         val rolagem = rememberScrollState()
         // O container de rolagem é um só; sem isto, trocar de tela mantém o
@@ -82,12 +83,22 @@ fun CalculadoraApp(viewModel: SimulacaoViewModel = hiltViewModel()) {
                 .consumeWindowInsets(espacamento)
                 .imePadding()
                 .indicadorDeRolagem(rolagem)
-                .verticalScroll(rolagem)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(Tema.espacos.entreSecoes),
+                .verticalScroll(rolagem),
         ) {
-            if (emLicencas) LicencasScreen() else SimulacaoScreen(viewModel)
-            Rodape()
+            // A barra é o começo do conteúdo, como o cabeçalho do web é o começo da página: sai ao rolar e só volta
+            // no topo. Fixa no `Scaffold`, ela tomava um quarto da tela com a fonte no máximo (CALANDR-35). Com o
+            // teclado aberto, quando o campo em foco precisa subir, ela rola junto, como no web (decisão do operador
+            // de 04/10/2026); nunca fica por baixo da barra de status, porque o conteúdo começa abaixo dela.
+            BarraSuperior(emLicencas) { emLicencas = !emLicencas }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(Tema.espacos.entreSecoes),
+            ) {
+                if (emLicencas) LicencasScreen() else SimulacaoScreen(viewModel)
+                Rodape()
+            }
         }
     }
 }
@@ -96,7 +107,10 @@ fun CalculadoraApp(viewModel: SimulacaoViewModel = hiltViewModel()) {
 @Composable
 private fun BarraSuperior(emLicencas: Boolean, aoAlternar: () -> Unit) {
     TopAppBar(
+        modifier = Modifier.testTag(Marcas.CABECALHO),
         colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+        // O recuo da barra de status já vem do `Scaffold`, aplicado ao contêiner rolável.
+        windowInsets = WindowInsets(0.dp),
         title = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
