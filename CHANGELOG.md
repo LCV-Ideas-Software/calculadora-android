@@ -79,6 +79,20 @@ All material changes to `calculadora-android` are recorded here.
   `DeviceConfigurationOverride`. Each defect case fails on the 1.0.2 layout; a
   control case, at the default font on a wide screen, passes on both
   (CALANDR-32).
+- At the largest font on a 360 dp wide screen, the fixed top bar took about a
+  quarter of the screen: the title broke into two lines and the subtitle,
+  squeezed beside "Licenças", into five, and the bar kept that space even with
+  the results on screen. The bar had not changed since 1.0.0. It now scrolls
+  with the content, as the web header does: it leaves when scrolling down and
+  comes back at the top. It uses Material 3's
+  `exitUntilCollapsedScrollBehavior`, whose collapse limit is the bar's whole
+  measured height, also when a large font makes it taller than the standard
+  64 dp. With the keyboard open the bar stays put (`canScroll`): the scroll
+  that brings the focused field above the keyboard also goes through nested
+  scrolling and would leave the bar half collapsed and cut, against
+  CALANDR-31. Switching between the simulation and the licenses brings the
+  bar back with the content at the top, and the bar stays transparent with
+  content scrolled, so the status bar strip is not painted (CALANDR-35).
 
 ## [1.0.2] — 03/10/2026
 

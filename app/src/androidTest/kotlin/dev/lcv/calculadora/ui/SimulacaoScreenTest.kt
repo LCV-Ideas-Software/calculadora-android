@@ -22,14 +22,18 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollTo
@@ -37,8 +41,11 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.then
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.text.AnnotatedString
@@ -49,6 +56,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.SavedStateHandle
+import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.lcv.calculadora.R
@@ -899,6 +907,50 @@ class SimulacaoScreenTest {
         assertTextoInteiro("R$ 5.608,03", "o total da Conta Global")
         assertSeloSemSobreposicao(contexto.getString(R.string.cartao_global), cartaoDeCima = Marcas.CARTAO_CARTAO)
         assertNumaLinha(contexto.getString(R.string.acao_escolher_data), "o botão da data")
+    }
+
+    // CALANDR-35 — a barra superior rola com o conteúdo, como o cabeçalho do web: sai ao descer e só volta no topo.
+    // Com a fonte no máximo numa tela estreita ela tem um quarto da altura, e fixa tomava esse espaço o tempo todo. Os
+    // gestos são de toque, o caminho real da rolagem aninhada que a recolhe.
+
+    /** O título fora do conteúdo rolável: o mesmo texto aparece no NOTICE, que a tela de licenças mostra. */
+    private fun tituloDaBarra() =
+        compose.onNode(hasText(contexto.getString(R.string.titulo)) and !hasAnyAncestor(hasScrollAction()))
+
+    /** A barra inteira na tela: a caixa do título recortada pelos pais tem a altura do próprio título. */
+    private fun assertBarraInteira() {
+        val titulo = tituloDaBarra().assertIsDisplayed().fetchSemanticsNode()
+        assertEquals(
+            "altura visível do título da barra",
+            titulo.size.height.toFloat(),
+            titulo.boundsInRoot.height,
+            0.5f,
+        )
+    }
+
+    @Test
+    fun comAFonteNoMaximoEmTelaEstreitaABarraSaiAoRolarEVoltaNoTopo() {
+        montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
+        assertBarraInteira()
+
+        compose.onRoot().performTouchInput { swipeUp() }
+        tituloDaBarra().assertIsNotDisplayed()
+
+        // Um gesto pode não chegar ao topo de uma tela longa: até dez, parando quando a barra reaparece.
+        repeat(10) { if (!tituloDaBarra().isDisplayed()) compose.onRoot().performTouchInput { swipeDown() } }
+        assertBarraInteira()
+    }
+
+    @Test
+    fun aoVoltarDasLicencasComABarraRecolhidaASimulacaoApareceNoTopoComABarraInteira() {
+        montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
+        compose.onNodeWithText(contexto.getString(R.string.acao_licencas)).performClick()
+        compose.onRoot().performTouchInput { swipeUp() }
+        tituloDaBarra().assertIsNotDisplayed()
+
+        Espresso.pressBack()
+        compose.onNodeWithText(contexto.getString(R.string.subtitulo)).assertIsDisplayed()
+        assertBarraInteira()
     }
 }
 
