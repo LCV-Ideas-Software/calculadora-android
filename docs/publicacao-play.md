@@ -55,9 +55,13 @@ não substitui o build, assinatura e publicação do workflow.
    segue o fluxo automático da Google após aprovação.
 8. Verificar lifecycle `PUBLISHED`, o código e a trilha antes de anunciar
    disponibilidade. Se o run original terminou durante a revisão, executar
-   **Record a Play release on GitHub**, no commit exato da versão, com o código
-   correspondente. Ele valida estado, pacote, versão, certificado e cria a tag
-   nesse SHA; não recompila nem envia novamente o bundle.
+   **Record a Play release on GitHub** em `main`, informando o ID do run de
+   **Publish to Google Play** que enviou a versão — o número no fim da URL do run,
+   `…/actions/runs/<ID>` — e o código correspondente. Ele lê esse run pela API do
+   GitHub e recusa run de outro workflow, ainda em andamento ou que não terminou
+   com sucesso. Depois faz checkout do commit que esse run construiu, valida
+   nele estado, pacote, versão e certificado, e cria a tag nesse SHA, nunca no
+   commit em que foi disparado; não recompila nem envia novamente o bundle.
 
 ## Referências oficiais
 

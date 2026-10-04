@@ -79,6 +79,23 @@ All material changes to `calculadora-android` are recorded here.
   `DeviceConfigurationOverride`. Each defect case fails on the 1.0.2 layout; a
   control case, at the default font on a wide screen, passes on both
   (CALANDR-32).
+- `Record a Play release on GitHub` could tag a commit Google Play never
+  built. It created the tag and the Release at `$GITHUB_SHA`, the commit it
+  ran on, and its only commit guard compared the repository `versionCode`
+  with the one given. After a version is merged, `main` keeps receiving
+  merges without changing `versionCode`: measured on 03/10/2026, Play built
+  1.0.2 from `826e519` (run 37131222387) while `main` had moved on to
+  `f13f4a7`, still at code 4, so a dispatch on `main` would have tagged
+  `f13f4a7`. The workflow now takes the id of the `Publish to Google Play`
+  run that uploaded the version, reads it through the GitHub API with
+  `actions: read`, and refuses it unless it belongs to this repository's
+  `.github/workflows/publish-play.yml` and completed with `success`. It checks
+  out that run's `head_sha`, runs every existing check against that commit,
+  the `versionCode` one included, and creates the tag and the Release with
+  that commit as the explicit target. A failed check stops the run before
+  any tag or Release exists. A version already recorded is now refused when
+  the tag is derived, before the Google authentication and the attestation,
+  so a repeated dispatch leaves nothing public (CALANDR-33).
 
 ## [1.0.2] — 03/10/2026
 
