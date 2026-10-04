@@ -85,8 +85,11 @@ class AplicativoMinificadoTest {
     @Test
     fun aSimulacaoMostraACotacaoDeCadaFonteQueResponde() {
         val ptax = responde(OLINDA) || responde(CSV_BCB)
-        val cotacoes = FONTES_CAMBIO.associateWith(::instanteDaCotacao)
-        val cambio = cotacoes.values.any { it != null }
+        // A fonte que responde conta mesmo sem cotação utilizável: a contingência é então a escolha certa do
+        // aplicativo, e o fluxo sai pulado, não verde (decisão do operador de 04/10/2026).
+        val corpos = FONTES_CAMBIO.associateWith { consultar(it.endereco) }
+        val cotacoes = FONTES_CAMBIO.associateWith { f -> corpos[f]?.let { instanteDaCotacao(f, it) } }
+        val cambio = corpos.values.any { it != null }
         Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio=$cotacoes")
         val inicio = Instant.now()
         preencherOValorECalcular()
@@ -214,12 +217,11 @@ class AplicativoMinificadoTest {
 
     /** O instante da cotação que a fonte de câmbio devolve agora ao teste, ou `null` se ela não responde com ele. */
     /**
-     * O instante da cotação que a fonte de câmbio devolve agora ao teste, ou `null` se ela não responde com uma cotação
-     * que o aplicativo possa usar: preço positivo e instante, nos mesmos campos que ele lê (`Leitores`, no
-     * `:core:data`). Os limites de tamanho do número, que o aplicativo também aplica, não são repetidos aqui.
+     * O instante da cotação no [corpo] que a fonte de câmbio devolveu ao teste, ou `null` se não há nele uma cotação que
+     * o aplicativo possa usar: preço positivo e instante, nos mesmos campos que ele lê (`Leitores`, no `:core:data`).
+     * Os limites de tamanho do número, que o aplicativo também aplica, não são repetidos aqui.
      */
-    private fun instanteDaCotacao(fonte: FonteCambio): Instant? {
-        val corpo = consultar(fonte.endereco) ?: return null
+    private fun instanteDaCotacao(fonte: FonteCambio, corpo: String): Instant? {
         return try {
             val cotacao = fonte.cotacao(JSONObject(corpo))
             val preco = cotacao.get(fonte.campoDoPreco).toString().toBigDecimalOrNull()
