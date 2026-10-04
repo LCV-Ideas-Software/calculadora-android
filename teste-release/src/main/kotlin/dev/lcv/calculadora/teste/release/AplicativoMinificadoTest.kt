@@ -24,7 +24,6 @@ import java.time.Instant
 import java.util.regex.Pattern
 import org.json.JSONException
 import org.json.JSONObject
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -57,13 +56,13 @@ class AplicativoMinificadoTest {
         intencao!!.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
         // Depois que o `pm clear` volta, o sistema ainda pode matar o aplicativo aberto logo em seguida (CI da #97, em
         // 04/10/2026: aberto 0,8 s depois do `pm clear` e morto 0,3 s mais tarde). Por isso há uma segunda abertura; o
-        // fluxo só cai se nem ela abrir.
+        // fluxo só cai se nem ela abrir. Cada abertura só conta com o formulário na tela, e não com a janela do pacote,
+        // que pode aparecer antes de o processo morrer.
         val abriu = (1..2).any {
             instrumentacao.context.startActivity(intencao)
-            aparelho.wait(Until.hasObject(By.pkg(PACOTE).depth(0)), ESPERA)
+            aparelho.wait(Until.hasObject(By.text(CALCULAR)), ESPERA)
         }
         assertTrue("o aplicativo não abriu", abriu)
-        achar(By.text(CALCULAR))
     }
 
     /**
@@ -73,24 +72,22 @@ class AplicativoMinificadoTest {
      * que responde obriga o aplicativo a mostrar a cotação dela, pelo rótulo da fonte, que só existe com a cotação
      * disponível. Sem fonte alguma, o teste confere que o aplicativo não caiu e se declara pulado, não verde.
      *
-     * O câmbio só conta com cotação de até 24 h, a regra do próprio aplicativo (CALANDR-36): no fim de semana a
-     * fonte responde com a cotação de sexta, o aplicativo a recusa e a Conta Global vai para a PTAX de contingência.
-     * O aplicativo decide no momento em que busca a cotação, em algum instante entre o começo do cálculo e a leitura
-     * do rótulo; por isso o teste sonda o câmbio antes e depois do cálculo e julga a cotação nesse intervalo:
-     * - vigente com certeza: a que já existia antes ainda vale no fim. A contingência é então um erro;
-     * - vencida com certeza: nem a da sonda de depois, a mais nova que o aplicativo pode ter recebido, valia no
-     *   começo. O rótulo dessa fonte é então um erro;
-     * - entre as duas, o aplicativo pode ter decidido para qualquer lado, e os dois resultados valem.
-     * Com a contingência, o teste se declara pulado, porque a AwesomeAPI e o Yahoo não foram exercitados. Também se
-     * declara pulado quando a fonte do rótulo não responde à sonda de depois e não era vigente com certeza: sem essa
-     * sonda, não há como julgar o rótulo.
+     * O câmbio só conta com a cotação que o próprio aplicativo aceita (CALANDR-36): preço positivo e instante de até
+     * 24 h. No fim de semana a fonte responde com a cotação de sexta, o aplicativo a recusa e a Conta Global vai para a
+     * PTAX de contingência. O aplicativo busca a cotação em algum momento entre o começo do cálculo e a leitura do
+     * rótulo, e por isso a contingência só é erro com uma cotação que vale nesse intervalo inteiro. Com a contingência e
+     * sem uma cotação assim, o teste se declara pulado, porque a AwesomeAPI e o Yahoo não foram exercitados.
+     *
+     * O teste julga num sentido só (decisão do operador de 04/10/2026): ele exige o rótulo ao vivo, para pegar o R8
+     * quebrando a rede, mas não julga o rótulo de uma cotação vencida. Recusar a cotação vencida ou do futuro é coberto
+     * pelos testes de unidade do `:core:data` (`CotacoesRepositoryTest` e `ProvedoresTest`).
      */
     @Test
     fun aSimulacaoMostraACotacaoDeCadaFonteQueResponde() {
         val ptax = responde(OLINDA) || responde(CSV_BCB)
-        val antes = FONTES_CAMBIO.associateWith(::instanteDaCotacao)
-        val cambio = antes.values.any { it != null }
-        Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio=$antes")
+        val cotacoes = FONTES_CAMBIO.associateWith(::instanteDaCotacao)
+        val cambio = cotacoes.values.any { it != null }
+        Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio=$cotacoes")
         val inicio = Instant.now()
         preencherOValorECalcular()
         if (!ptax && !cambio) {
@@ -109,27 +106,16 @@ class AplicativoMinificadoTest {
             val mostrada = esperarRolando(By.text(Pattern.compile(rotulos)), ESPERA_REDE)?.text
             val fim = Instant.now()
             assertNotNull("o câmbio respondeu ao teste, mas a Conta Global não mostrou fonte alguma", mostrada)
-            // Só a sonda de depois limita a cotação que o aplicativo recebeu: a fonte pode ter publicado outra depois
-            // da sonda de antes.
-            val depois = FONTES_CAMBIO.associateWith(::instanteDaCotacao)
-            val limiteNoFim = fim.minus(IDADE_MAXIMA_CAMBIO)
-            val limiteNoInicio = inicio.minus(IDADE_MAXIMA_CAMBIO)
-            // Como no aplicativo, a cotação com instante no futuro também não vale (idade negativa).
+            // A cotação sondada vale do começo ao fim do intervalo. Como no aplicativo, a do futuro também não vale.
+            val limite = fim.minus(IDADE_MAXIMA_CAMBIO)
             val vigentes = FONTES_CAMBIO.filter { f ->
-                antes[f]?.let { !it.isBefore(limiteNoFim) && !it.isAfter(inicio) } == true
+                cotacoes[f]?.let { !it.isBefore(limite) && !it.isAfter(inicio) } == true
             }
-            val vencidas = FONTES_CAMBIO.filter { f -> depois[f]?.let { it.isBefore(limiteNoInicio) } == true }
-            Log.i(ROTULO, "a Conta Global usou: $mostrada; depois: $depois; vigentes: $vigentes; vencidas: $vencidas")
+            Log.i(ROTULO, "a Conta Global usou: $mostrada; cotações vigentes: $vigentes")
             if (mostrada == FONTE_CONTINGENCIA) {
                 assertTrue("a Conta Global foi para a contingência com cotação vigente: $vigentes", vigentes.isEmpty())
                 assertTrue("o processo do aplicativo morreu", processoVivo())
                 assumeTrue("sem cotação de câmbio vigente: a AwesomeAPI e o Yahoo não foram exercitados", false)
-            }
-            val usada = FONTES_CAMBIO.first { it.rotulo == mostrada }
-            assertFalse("a Conta Global mostrou $usada com a cotação vencida de ${depois[usada]}", usada in vencidas)
-            if (usada !in vigentes && depois[usada] == null) {
-                assertTrue("o processo do aplicativo morreu", processoVivo())
-                assumeTrue("a fonte $usada não respondeu à sonda de depois: a vigência do rótulo não foi julgada", false)
             }
         }
         assertTrue("o processo do aplicativo morreu", processoVivo())
@@ -227,18 +213,35 @@ class AplicativoMinificadoTest {
     private fun responde(endereco: String): Boolean = consultar(endereco) != null
 
     /** O instante da cotação que a fonte de câmbio devolve agora ao teste, ou `null` se ela não responde com ele. */
+    /**
+     * O instante da cotação que a fonte de câmbio devolve agora ao teste, ou `null` se ela não responde com uma cotação
+     * que o aplicativo possa usar: preço positivo e instante, nos mesmos campos que ele lê (`Leitores`, no
+     * `:core:data`). Os limites de tamanho do número, que o aplicativo também aplica, não são repetidos aqui.
+     */
     private fun instanteDaCotacao(fonte: FonteCambio): Instant? {
         val corpo = consultar(fonte.endereco) ?: return null
         return try {
-            Instant.ofEpochSecond(fonte.instante(JSONObject(corpo)))
+            val cotacao = fonte.cotacao(JSONObject(corpo))
+            val preco = cotacao.get(fonte.campoDoPreco).toString().toBigDecimalOrNull()
+            if (preco == null || preco.signum() <= 0) {
+                Log.i(ROTULO, "a fonte ${fonte.endereco} respondeu sem preço válido: $preco")
+                return null
+            }
+            Instant.ofEpochSecond(cotacao.getLong(fonte.campoDoInstante))
         } catch (erro: JSONException) {
-            Log.i(ROTULO, "a fonte ${fonte.endereco} respondeu sem o instante da cotação: $erro")
+            Log.i(ROTULO, "a fonte ${fonte.endereco} respondeu sem a cotação: $erro")
             null
         }
     }
 
-    /** Uma fonte de câmbio: o endereço que o aplicativo consulta, o rótulo na tela e onde o corpo traz o instante. */
-    private class FonteCambio(val endereco: String, val rotulo: String, val instante: (JSONObject) -> Long) {
+    /** Uma fonte de câmbio: o endereço que o aplicativo consulta, o rótulo na tela e onde o corpo traz a cotação. */
+    private class FonteCambio(
+        val endereco: String,
+        val rotulo: String,
+        val campoDoPreco: String,
+        val campoDoInstante: String,
+        val cotacao: (JSONObject) -> JSONObject,
+    ) {
         override fun toString() = rotulo
     }
 
@@ -269,12 +272,11 @@ class AplicativoMinificadoTest {
         // A idade máxima da cotação de câmbio que o aplicativo aceita (`IDADE_MAXIMA_SPOT`, no `:core:data`).
         val IDADE_MAXIMA_CAMBIO: Duration = Duration.ofHours(24)
 
-        // Na ordem em que o aplicativo as consulta (`ProvedorSpotWeb`), com o instante da cotação, em segundos.
+        // Na ordem em que o aplicativo as consulta (`ProvedorSpotWeb`); o instante vem em segundos.
         val FONTES_CAMBIO = listOf(
-            FonteCambio(AWESOME, FONTE_AWESOME) { it.getJSONObject("USDBRL").getLong("timestamp") },
-            FonteCambio(YAHOO, FONTE_YAHOO) {
+            FonteCambio(AWESOME, FONTE_AWESOME, "bid", "timestamp") { it.getJSONObject("USDBRL") },
+            FonteCambio(YAHOO, FONTE_YAHOO, "regularMarketPrice", "regularMarketTime") {
                 it.getJSONObject("chart").getJSONArray("result").getJSONObject(0).getJSONObject("meta")
-                    .getLong("regularMarketTime")
             },
         )
 
