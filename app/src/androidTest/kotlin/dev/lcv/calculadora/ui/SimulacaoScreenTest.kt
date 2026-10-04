@@ -10,8 +10,13 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.DeviceConfigurationOverride
+import androidx.compose.ui.test.FontScale
+import androidx.compose.ui.test.ForcedSize
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
@@ -22,28 +27,40 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextInputSelection
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.requestFocus
+import androidx.compose.ui.test.then
 import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.lcv.calculadora.R
 import dev.lcv.calculadora.calc.ContextoOperacional
 import dev.lcv.calculadora.calc.Formatacao
+import dev.lcv.calculadora.calc.Opcao
 import dev.lcv.calculadora.calc.Parametros
+import dev.lcv.calculadora.calc.melhorOpcao
 import java.math.BigDecimal
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -646,7 +663,263 @@ class SimulacaoScreenTest {
         compose.onAllNodesWithTag(Marcas.SPREAD_ABERTO).assertCountEquals(0)
         compose.onAllNodesWithTag(Marcas.SPREAD_FECHADO).assertCountEquals(0)
     }
+
+    // CALANDR-32 — a regra das linhas: o que precisa da própria largura (selo, pílula, valor) nunca é espremido pelo
+    // texto ao lado, e nada quebra no meio de uma palavra. Os casos de fonte e de largura rodam o aplicativo inteiro
+    // (`CalculadoraApp`, com a barra, a rolagem e as margens reais) num aparelho simulado pela API oficial de teste; a
+    // altura da pílula da melhor opção é medida só com a fonte fixada, sem tela forçada, e o teste dela diz por quê. O
+    // controle, com a fonte padrão numa tela larga, passa antes e depois da correção: é ele que prova que as asserções
+    // não reprovam uma tela correta.
+
+    /** O aplicativo inteiro dentro de um aparelho simulado, com o view model em memória. */
+    private fun montarNoAparelho(
+        aparelho: DeviceConfigurationOverride,
+        vm: SimulacaoViewModel = viewModelEmMemoria(),
+    ): SimulacaoViewModel {
+        compose.setContent {
+            DeviceConfigurationOverride(aparelho) {
+                CalculadoraTheme { CalculadoraApp(vm) }
+            }
+        }
+        return vm
+    }
+
+    /** O vencedor que o motor escolheu: pré-condição de cada caso, e não o assunto dele. */
+    private fun vencedor(vm: SimulacaoViewModel): Opcao? =
+        compose.runOnIdle { vm.estado.value.simulacao?.let { melhorOpcao(it.simulacao) } }
+
+    /** O `TextLayoutResult` do nó, pela ação oficial `GetTextLayoutResult` (o resultado é o primeiro da lista). */
+    private fun SemanticsNodeInteraction.layoutDoTexto(): TextLayoutResult {
+        val resultados = mutableListOf<TextLayoutResult>()
+        performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(resultados) }
+        return resultados.first()
+    }
+
+    /** O texto aparece inteiro, sem reticências, e cada quebra de linha cai entre palavras. */
+    private fun assertQuebraSoEntrePalavras(layout: TextLayoutResult, texto: String, nome: String) {
+        val ultima = layout.lineCount - 1
+        assertEquals("$nome: caracteres visíveis", texto.length, layout.getLineEnd(ultima, visibleEnd = true))
+        for (linha in 0..ultima) {
+            assertFalse("$nome: a linha $linha termina em reticências", layout.isLineEllipsized(linha))
+        }
+        for (linha in 0 until ultima) {
+            val fim = layout.getLineEnd(linha)
+            assertTrue(
+                "$nome: a linha $linha quebra no meio de uma palavra: \"${texto.substring(0, fim)}|${texto.substring(fim)}\"",
+                texto[fim - 1].isWhitespace() || texto[fim].isWhitespace(),
+            )
+        }
+    }
+
+    /** Um texto achado pelo conteúdo, rolado até a vista, inteiro e quebrado só entre palavras. */
+    private fun assertTextoInteiro(texto: String, nome: String): TextLayoutResult {
+        val no = compose.onNodeWithText(texto, useUnmergedTree = true).performScrollTo()
+        val layout = no.layoutDoTexto()
+        assertQuebraSoEntrePalavras(layout, texto, nome)
+        no.assertIsDisplayed()
+        return layout
+    }
+
+    /** O selo ou a pílula numa linha só, inteiro e visível. A contagem vem antes, com o número na mensagem. */
+    private fun assertNumaLinha(texto: String, nome: String) {
+        compose.onAllNodesWithText(texto, useUnmergedTree = true).assertCountEquals(1)
+        val no = compose.onNodeWithText(texto, useUnmergedTree = true).performScrollTo()
+        assertEquals("linhas de $nome \"$texto\"", 1, no.layoutDoTexto().lineCount)
+        assertQuebraSoEntrePalavras(no.layoutDoTexto(), texto, nome)
+        no.assertIsDisplayed()
+    }
+
+    /** A caixa do nó em pixels da raiz, sem recorte: a posição e o tamanho do próprio layout. */
+    private fun caixa(no: SemanticsNodeInteraction): Rect {
+        val semantica = no.fetchSemanticsNode()
+        return Rect(semantica.positionInRoot, semantica.size.toSize())
+    }
+
+    /**
+     * O selo do canto não cobre a primeira linha do título do próprio cartão nem invade o cartão de cima. A caixa do
+     * selo inclui o fundo e o recuo da pílula; a da linha vem do layout do texto, sobre a posição do título.
+     */
+    private fun assertSeloSemSobreposicao(textoTitulo: String, cartaoDeCima: String) {
+        val selo = caixa(compose.onNodeWithTag(Marcas.SELO, useUnmergedTree = true))
+        val titulo = compose.onNodeWithText(textoTitulo, useUnmergedTree = true)
+        val noTitulo = caixa(titulo)
+        val layout = titulo.layoutDoTexto()
+        val primeiraLinha = Rect(
+            noTitulo.left + layout.getLineLeft(0),
+            noTitulo.top + layout.getLineTop(0),
+            noTitulo.left + layout.getLineRight(0),
+            noTitulo.top + layout.getLineBottom(0),
+        )
+        assertFalse("o selo $selo cobre a primeira linha do título $primeiraLinha", selo.overlaps(primeiraLinha))
+        val acima = caixa(compose.onNodeWithTag(cartaoDeCima))
+        assertFalse("o selo $selo invade o cartão de cima $acima", selo.overlaps(acima))
+    }
+
+    /** O selo fica sobre o canto superior direito do cartão e avança para fora dele, como o `-top-2.5 -right-2.5` do web. */
+    private fun assertSeloNoCanto(cartao: String) {
+        val selo = caixa(compose.onNodeWithTag(Marcas.SELO, useUnmergedTree = true))
+        val doCartao = caixa(compose.onNodeWithTag(cartao))
+        assertTrue("o selo $selo não avança sobre o topo do cartão $doCartao", selo.top < doCartao.top)
+        assertTrue("o selo $selo não avança sobre a direita do cartão $doCartao", selo.right > doCartao.right)
+        assertTrue("o selo $selo não fica na metade direita do cartão $doCartao", selo.left > doCartao.center.x)
+    }
+
+    private fun calcularNoAparelho(aparelho: DeviceConfigurationOverride, valor: String, vet: String? = null): SimulacaoViewModel {
+        val vm = montarNoAparelho(aparelho)
+        partirDe(vm.campoValor, valor)
+        vet?.let { partirDe(vm.campoVet, it) }
+        calcular()
+        assertResultadoVisivel()
+        return vm
+    }
+
+    @Test
+    fun oSeloDoVencedorFicaNumaLinhaComAFonteNoMaximoEmTelaEstreita() {
+        // US$ 1.000,00 com as fontes em memória: R$ 5.608,03 na Conta Global contra R$ 5.896,40 no cartão.
+        val vm = calcularNoAparelho(TELA_ESTREITA_FONTE_MAXIMA, valor = "100000")
+        assertEquals("pré-condição: a Conta Global vence", Opcao.CONTA_GLOBAL, vencedor(vm))
+
+        assertNumaLinha(contexto.getString(R.string.selo_vencedor), "o selo")
+        assertTextoInteiro(contexto.getString(R.string.cartao_global), "o título do vencedor")
+        assertSeloSemSobreposicao(contexto.getString(R.string.cartao_global), cartaoDeCima = Marcas.CARTAO_CARTAO)
+    }
+
+    @Test
+    fun oSeloDoVencedorFicaNumaLinhaQuandoOSaldoExistenteVenceComAFonteUmPoucoMaior() {
+        // O título mais longo dos três, com a fonte um pouco acima da padrão: VET de 5,0000 dá R$ 5.000,00 no saldo.
+        val vm = calcularNoAparelho(PIXEL_2_FONTE_UM_POUCO_MAIOR, valor = "100000", vet = "50000")
+        assertEquals("pré-condição: o saldo existente vence", Opcao.SALDO_EXISTENTE, vencedor(vm))
+
+        assertNumaLinha(contexto.getString(R.string.selo_vencedor), "o selo")
+        assertTextoInteiro(contexto.getString(R.string.cartao_saldo), "o título do vencedor")
+        assertSeloSemSobreposicao(contexto.getString(R.string.cartao_saldo), cartaoDeCima = Marcas.CARTAO_GLOBAL)
+    }
+
+    @Test
+    fun comAFontePadraoEmTelaEstreitaOSeloFicaNoCantoEOTituloNumaLinha() {
+        // Como no web: com a fonte padrão o selo fica acima do conteúdo, e o título usa a largura inteira.
+        val vm = calcularNoAparelho(TELA_ESTREITA_FONTE_PADRAO, valor = "100000")
+        assertEquals("pré-condição: a Conta Global vence", Opcao.CONTA_GLOBAL, vencedor(vm))
+
+        assertNumaLinha(contexto.getString(R.string.selo_vencedor), "o selo")
+        assertEquals(
+            "linhas do título do vencedor",
+            1,
+            assertTextoInteiro(contexto.getString(R.string.cartao_global), "o título do vencedor").lineCount,
+        )
+        assertSeloSemSobreposicao(contexto.getString(R.string.cartao_global), cartaoDeCima = Marcas.CARTAO_CARTAO)
+        assertSeloNoCanto(Marcas.CARTAO_GLOBAL)
+    }
+
+    @Test
+    fun aPilulaDoCenarioProvavelFicaNumaLinhaComAFonteGrande() {
+        val vm = montarNoAparelho(PIXEL_2_FONTE_GRANDE)
+        marcarDcc()
+        // R$ 100,00 cobrados como R$ 109,19: acréscimo de 9,19%, o da dupla conversão — (1 + 5,5%) × (1 + 3,5%) − 1.
+        partirDe(vm.campoValor, "10000")
+        partirDe(vm.campoFatura, "10919")
+        calcular()
+        runCatching {
+            compose.waitUntil(TEMPO_LIMITE) { compose.onAllNodesWithTag(Marcas.CENARIOS).fetchSemanticsNodes().isNotEmpty() }
+        }
+
+        assertNumaLinha(contexto.getString(R.string.pilula_provavel), "a pílula")
+        assertTextoInteiro("Dupla conversão (spread + IOF)", "o título do cenário provável")
+    }
+
+    @Test
+    fun osTotaisNaoQuebramNoMeioDoNumeroComAFonteNoMaximoEmTelaEstreita() {
+        val vm = calcularNoAparelho(TELA_ESTREITA_FONTE_MAXIMA, valor = "100000")
+        assertEquals("pré-condição: a Conta Global vence", Opcao.CONTA_GLOBAL, vencedor(vm))
+
+        assertTextoInteiro("R$ 5.896,40", "o total do cartão")
+        assertTextoInteiro("R$ 5.608,03", "o total da Conta Global")
+    }
+
+    @Test
+    fun oBotaoDaDataFicaNumaLinhaComAFonteNoMaximoEmTelaEstreita() {
+        montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
+
+        assertNumaLinha(contexto.getString(R.string.acao_escolher_data), "o botão da data")
+        assertTextoInteiro("18/09/2026", "a data da compra")
+    }
+
+    @Test
+    fun osIndicadoresDePlantaoEContingenciaFicamNumaLinhaComAFonteNoMaximoEmTelaEstreita() {
+        // Às 23h e sem nenhuma fonte de spot no ar, a Conta Global opera em plantão e na PTAX de contingência: são as
+        // duas pílulas juntas, lado a lado quando cabem.
+        val vm = montarNoAparelho(
+            TELA_ESTREITA_FONTE_MAXIMA,
+            viewModelEmMemoria(relogio = RELOGIO_DE_PLANTAO, provedorSpot = SPOT_FORA_DO_AR),
+        )
+        partirDe(vm.campoValor, "100000")
+        calcular()
+        assertResultadoVisivel()
+
+        assertNumaLinha(contexto.getString(R.string.pilula_plantao), "a pílula")
+        assertNumaLinha(contexto.getString(R.string.pilula_contingencia), "a pílula")
+    }
+
+    @Test
+    fun aPilulaDaMelhorOpcaoTemAAlturaDoWeb() {
+        // `text-sm px-4 py-2 border` do web: 20 px de linha, 8 px de padding e 1 px de borda, em cima e embaixo, o
+        // espaçamento normal entre letras, o texto centralizado e o rótulo curto ("✅ 🌐 Conta Global", de
+        // `useSimulation.ts`). Só a escala de fonte é fixada, em 1,0: o `ForcedSize` que não cabe na tela reduziria a
+        // densidade do conteúdo, e a altura em dp passaria a depender dele. A marca fica na ponta de fora da pílula, e
+        // a caixa do nó inclui o recuo.
+        val vm = calcularNoAparelho(FONTE_PADRAO, valor = "100000")
+        assertEquals("pré-condição: a Conta Global vence", Opcao.CONTA_GLOBAL, vencedor(vm))
+
+        val no = compose.onNodeWithTag(Marcas.MELHOR_OPCAO, useUnmergedTree = true).performScrollTo()
+        val altura = with(compose.density) { no.fetchSemanticsNode().size.height.toDp() }
+        assertEquals("altura da pílula da melhor opção, em dp", 38f, altura.value, 1f)
+        val layout = no.layoutDoTexto()
+        assertEquals(
+            "espaçamento entre letras da pílula da melhor opção, em sp",
+            0f,
+            layout.layoutInput.style.letterSpacing.value,
+            0f,
+        )
+        assertEquals("alinhamento da pílula da melhor opção", TextAlign.Center, layout.layoutInput.style.textAlign)
+        assertEquals("texto da pílula da melhor opção", "✅ 🌐 Conta Global", layout.layoutInput.text.text)
+    }
+
+    @Test
+    fun controleComAFontePadraoEmTelaLargaTudoCabe() {
+        val vm = calcularNoAparelho(TELA_LARGA_FONTE_PADRAO, valor = "100000")
+        assertEquals("pré-condição: a Conta Global vence", Opcao.CONTA_GLOBAL, vencedor(vm))
+
+        assertNumaLinha(contexto.getString(R.string.selo_vencedor), "o selo")
+        assertEquals(
+            "linhas do título do vencedor",
+            1,
+            assertTextoInteiro(contexto.getString(R.string.cartao_global), "o título do vencedor").lineCount,
+        )
+        assertTextoInteiro("R$ 5.896,40", "o total do cartão")
+        assertTextoInteiro("R$ 5.608,03", "o total da Conta Global")
+        assertSeloSemSobreposicao(contexto.getString(R.string.cartao_global), cartaoDeCima = Marcas.CARTAO_CARTAO)
+        assertNumaLinha(contexto.getString(R.string.acao_escolher_data), "o botão da data")
+    }
 }
+
+/**
+ * Os aparelhos simulados. A fonte vai até 200% no Android 14, e o override de teste passa pela mesma curva não linear
+ * do aparelho: o `Density` que ele monta converte sp pela `FontScaling` do Compose. 360 dp é a largura dos telefones
+ * estreitos comuns e 411 dp a do Pixel 2 do aparelho gerenciado.
+ */
+private val TELA_ESTREITA_FONTE_MAXIMA =
+    DeviceConfigurationOverride.FontScale(2f) then DeviceConfigurationOverride.ForcedSize(DpSize(360.dp, 720.dp))
+private val TELA_ESTREITA_FONTE_PADRAO =
+    DeviceConfigurationOverride.FontScale(1f) then DeviceConfigurationOverride.ForcedSize(DpSize(360.dp, 720.dp))
+private val PIXEL_2_FONTE_UM_POUCO_MAIOR =
+    DeviceConfigurationOverride.FontScale(1.15f) then DeviceConfigurationOverride.ForcedSize(DpSize(411.dp, 731.dp))
+private val PIXEL_2_FONTE_GRANDE =
+    DeviceConfigurationOverride.FontScale(1.3f) then DeviceConfigurationOverride.ForcedSize(DpSize(411.dp, 731.dp))
+private val TELA_LARGA_FONTE_PADRAO =
+    DeviceConfigurationOverride.FontScale(1f) then DeviceConfigurationOverride.ForcedSize(DpSize(600.dp, 960.dp))
+
+/** Só a fonte padrão, na tela e na densidade do próprio aparelho. */
+private val FONTE_PADRAO = DeviceConfigurationOverride.FontScale(1f)
 
 /** Cinco segundos cobrem a composição e o `viewModelScope` sem rede. */
 private const val TEMPO_LIMITE = 5_000L

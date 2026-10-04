@@ -27,23 +27,34 @@ import java.time.ZoneOffset
 /** Sexta-feira, 18/09/2026, 12:00 em Brasília — dia útil, mercado aberto. */
 internal val RELOGIO_DE_TESTE: Clock = Clock.fixed(Instant.parse("2026-09-18T15:00:00Z"), ZoneOffset.UTC)
 
+/** Sexta-feira, 18/09/2026, 23:00 em Brasília — fora da janela do mercado: a conta global opera em plantão. */
+internal val RELOGIO_DE_PLANTAO: Clock = Clock.fixed(Instant.parse("2026-09-19T02:00:00Z"), ZoneOffset.UTC)
+
+/** A spot de sempre dos testes: a AwesomeAPI responde. */
+private val SPOT_RESPONDE = ProvedorSpot { CotacaoSpotBruta(BigDecimal("5.3800"), FonteSpot.AWESOME_API) }
+
+/** Nenhuma fonte de spot responde e não há último spot salvo: o motor cai na PTAX de contingência. */
+internal val SPOT_FORA_DO_AR = ProvedorSpot { null }
+
 /**
  * O `SimulacaoViewModel` construído à mão sobre fontes e DAOs em memória, sem Hilt e sem rede: o grafo de injeção
  * do aplicativo não é o objeto dos testes instrumentados, e depender da rede tornaria o resultado dependente do dia.
  */
-internal fun viewModelEmMemoria(salvo: SavedStateHandle = SavedStateHandle()): SimulacaoViewModel {
+internal fun viewModelEmMemoria(
+    salvo: SavedStateHandle = SavedStateHandle(),
+    relogio: Clock = RELOGIO_DE_TESTE,
+    provedorSpot: ProvedorSpot = SPOT_RESPONDE,
+): SimulacaoViewModel {
     val cotacoes = CotacoesRepository(
         provedorPtax = ProvedorPtax { _, _ -> BigDecimal("5.4000") },
-        provedorSpot = ProvedorSpot {
-            CotacaoSpotBruta(BigDecimal("5.3800"), FonteSpot.AWESOME_API)
-        },
+        provedorSpot = provedorSpot,
         ptaxCache = PtaxCacheEmMemoria(),
         ultimoSpotDao = UltimoSpotEmMemoria(),
-        relogio = RELOGIO_DE_TESTE,
+        relogio = relogio,
     )
     return SimulacaoViewModel(
-        simulador = Simulador(cotacoes, BacktestRepository(BacktestEmMemoria(), RELOGIO_DE_TESTE), RELOGIO_DE_TESTE),
-        relogio = RELOGIO_DE_TESTE,
+        simulador = Simulador(cotacoes, BacktestRepository(BacktestEmMemoria(), relogio), relogio),
+        relogio = relogio,
         salvo = salvo,
     )
 }

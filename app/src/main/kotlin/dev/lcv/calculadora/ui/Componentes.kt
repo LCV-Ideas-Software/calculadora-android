@@ -9,7 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,7 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
 /**
@@ -150,7 +152,11 @@ fun CartaoVidro(
     }
 }
 
-/** Indicador curto em pílula, como `bg-amber-100 text-amber-800 rounded-full` no web. */
+/**
+ * Indicador curto em pílula, como `bg-amber-100 text-amber-800 rounded-full` no web. A altura da linha é 1,5 vez a
+ * fonte, a do selo e a da pílula do cenário no web (`text-[10px]` sobre o `line-height: 1.5` da página); sem ela, a
+ * pílula herdava os 24 sp do `bodyLarge` e ficava com 32 dp de altura em vez de 23 dp (CALANDR-32).
+ */
 @Composable
 fun Pilula(
     texto: String,
@@ -161,6 +167,7 @@ fun Pilula(
     Text(
         text = texto,
         fontSize = 10.sp,
+        lineHeight = 1.5.em,
         fontWeight = FontWeight.Bold,
         color = cor,
         modifier = modifier
@@ -169,7 +176,15 @@ fun Pilula(
     )
 }
 
-/** Linha rótulo à esquerda, valor à direita — a `Row` dos painéis do web. */
+/**
+ * Linha rótulo à esquerda, valor à direita — a `Row` dos painéis do web. Quando os dois não cabem lado a lado (fonte
+ * grande, tela estreita), o rótulo fica com a largura dele e o valor quebra entre palavras no espaço ao lado, ainda à
+ * direita; se nem a maior palavra do valor cabe ali, o valor desce para a linha de baixo. O `FlowRow` decide pela
+ * largura mínima do item com `weight`, que num texto é a da maior palavra. Antes, o rótulo espremia o valor até
+ * parti-lo no meio do número (CALANDR-32). No web os dois lados encolhem e quebram entre palavras, o que o `FlexBox`
+ * oficial, ainda experimental, reproduziria: desvio declarado na especificação, por decisões do operador em 03 e
+ * 04/10/2026.
+ */
 @Composable
 fun Linha(
     rotulo: String,
@@ -177,10 +192,10 @@ fun Linha(
     apagado: Boolean = false,
     forte: Boolean = false,
 ) {
-    Row(
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.Bottom,
+        itemVerticalAlignment = Alignment.Bottom,
     ) {
         Text(
             text = rotulo,
@@ -190,6 +205,7 @@ fun Linha(
         )
         Text(
             text = valor,
+            modifier = Modifier.weight(1f),
             fontSize = if (forte) 20.sp else 13.sp,
             fontWeight = when {
                 forte -> FontWeight.ExtraBold
@@ -197,6 +213,7 @@ fun Linha(
                 else -> FontWeight.SemiBold
             },
             color = if (apagado) Tema.cores.textoApagado else Tema.cores.textoNorm,
+            textAlign = TextAlign.End,
         )
     }
 }

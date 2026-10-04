@@ -9,14 +9,21 @@ import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.Button
@@ -41,10 +48,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -87,6 +99,11 @@ object Marcas {
     const val SPREAD_FECHADO = "parametro-spread-fechado"
     const val CALCULAR = "acao-calcular"
     const val RESULTADO = "resultado"
+    const val CARTAO_CARTAO = "resultado-cartao"
+    const val CARTAO_GLOBAL = "resultado-conta-global"
+    const val CARTAO_SALDO = "resultado-saldo-existente"
+    const val SELO = "selo-vencedor"
+    const val MELHOR_OPCAO = "pilula-melhor-opcao"
     const val CENARIOS = "cenarios-em-reais"
     const val DCC = "caixa-dcc"
 }
@@ -268,22 +285,27 @@ private fun SeletorDeMoeda(moeda: String, aoMudar: (String) -> Unit) {
 private fun SeletorDeData(data: LocalDate, aoMudar: (LocalDate) -> Unit) {
     var aberto by remember { mutableStateOf(false) }
 
-    Row(
+    // Quando a data e o botão não cabem lado a lado (fonte grande, tela estreita), o botão desce inteiro para a linha
+    // de baixo, ainda à direita, em vez de ser espremido até partir a palavra (CALANDR-32). O `FlowRow` decide pela
+    // largura mínima do item com `weight`, e a do botão é a dele inteiro: o rótulo é uma palavra só.
+    FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = data.format(DATA_BR),
             fontWeight = FontWeight.SemiBold,
             color = Tema.cores.textoNorm,
         )
-        OutlinedButton(
-            onClick = { aberto = true },
-            shape = RoundedCornerShape(Tema.formas.campo),
-            border = BorderStroke(1.dp, Tema.cores.separador),
-        ) {
-            Text(stringResource(R.string.acao_escolher_data), color = Tema.cores.textoFraco)
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            OutlinedButton(
+                onClick = { aberto = true },
+                shape = RoundedCornerShape(Tema.formas.campo),
+                border = BorderStroke(1.dp, Tema.cores.separador),
+            ) {
+                Text(stringResource(R.string.acao_escolher_data), color = Tema.cores.textoFraco)
+            }
         }
     }
 
@@ -438,6 +460,7 @@ private fun Resultado(resultado: ResultadoSimulacao, aoCompartilhar: () -> Unit)
         }
 
         CartaoComparacao(
+            marca = Marcas.CARTAO_CARTAO,
             icone = stringResource(R.string.icone_cartao),
             titulo = stringResource(R.string.cartao_credito),
             modalidade = simulacao.cartao,
@@ -447,6 +470,7 @@ private fun Resultado(resultado: ResultadoSimulacao, aoCompartilhar: () -> Unit)
         )
         if (global is Modalidade.Suportada) {
             CartaoComparacao(
+                marca = Marcas.CARTAO_GLOBAL,
                 icone = stringResource(R.string.icone_global),
                 titulo = stringResource(R.string.cartao_global),
                 modalidade = global,
@@ -456,7 +480,7 @@ private fun Resultado(resultado: ResultadoSimulacao, aoCompartilhar: () -> Unit)
             )
         }
         simulacao.saldoExistente?.let { saldo ->
-            CartaoVidro(tinta = Tema.cores.destaqueSaldo, destacado = melhor == Opcao.SALDO_EXISTENTE) {
+            CartaoResultado(Marcas.CARTAO_SALDO, Tema.cores.destaqueSaldo, vencedor = melhor == Opcao.SALDO_EXISTENTE) {
                 CabecalhoCartao(
                     stringResource(R.string.icone_saldo),
                     stringResource(R.string.cartao_saldo),
@@ -474,11 +498,7 @@ private fun Resultado(resultado: ResultadoSimulacao, aoCompartilhar: () -> Unit)
 
         melhor?.let { opcao ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                Pilula(
-                    texto = stringResource(R.string.melhor_opcao, stringResource(rotuloDaOpcao(opcao))),
-                    fundo = Tema.cores.destaqueGlobal,
-                    cor = Tema.cores.textoNorm,
-                )
+                PilulaMelhorOpcao(stringResource(R.string.melhor_opcao, stringResource(rotuloDaOpcao(opcao))))
             }
         }
 
@@ -501,6 +521,7 @@ private fun Resultado(resultado: ResultadoSimulacao, aoCompartilhar: () -> Unit)
 
 @Composable
 private fun CartaoComparacao(
+    marca: String,
     icone: String,
     titulo: String,
     modalidade: Modalidade,
@@ -508,7 +529,7 @@ private fun CartaoComparacao(
     tinta: androidx.compose.ui.graphics.Color,
     vencedor: Boolean,
 ) {
-    CartaoVidro(tinta = tinta, destacado = vencedor) {
+    CartaoResultado(marca, tinta, vencedor) {
         CabecalhoCartao(icone, titulo, vencedor)
         when (modalidade) {
             is Modalidade.Suportada -> {
@@ -543,22 +564,115 @@ private fun CartaoComparacao(
     }
 }
 
+/**
+ * O cartão de resultado com o selo do vencedor no canto, fora do fluxo, como no web: `absolute -top-2.5 -right-2.5`
+ * sobre o `glass-card relative` (ComparisonCard.tsx). Fora do fluxo, o selo não disputa largura com o título, que o
+ * espremia até quebrá-lo letra a letra (CALANDR-32). Fica fora do `Surface`, que recorta o conteúdo ao próprio formato.
+ */
 @Composable
-private fun CabecalhoCartao(icone: String, titulo: String, vencedor: Boolean) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(icone, fontSize = 18.sp)
-            Text(titulo, fontWeight = FontWeight.Bold, color = Tema.cores.textoNorm)
-        }
+private fun CartaoResultado(
+    marca: String,
+    tinta: androidx.compose.ui.graphics.Color,
+    vencedor: Boolean,
+    conteudo: @Composable ColumnScope.() -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxWidth().testTag(marca)) {
+        CartaoVidro(tinta = tinta, destacado = vencedor, conteudo = conteudo)
         if (vencedor) {
-            Pilula(stringResource(R.string.selo_vencedor), Tema.cores.vencedor, Tema.cores.vencedorTexto)
+            SeloVencedor(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = AVANCO_DO_SELO, y = -AVANCO_DO_SELO)
+                    .testTag(Marcas.SELO),
+            )
         }
     }
 }
+
+@Composable
+private fun SeloVencedor(modifier: Modifier = Modifier) {
+    Pilula(
+        texto = stringResource(R.string.selo_vencedor),
+        fundo = Tema.cores.vencedor,
+        cor = Tema.cores.vencedorTexto,
+        modifier = modifier.shadow(3.dp, RoundedCornerShape(percent = 50)),
+    )
+}
+
+/**
+ * Com a fonte grande o selo do canto cresce para baixo e passa a descer sobre a primeira linha do cartão. O título
+ * reserva então, no fim da linha, só a largura que o selo ocupa dentro do conteúdo, mais o vão de
+ * [ESPACO_ANTES_DO_SELO], e quebra antes dele em vez de passar por baixo. Com a fonte padrão o selo fica acima do
+ * conteúdo e nada é reservado, como no web. O selo é medido de novo, sem ser desenhado e fora da semântica, para a
+ * reserva acompanhar o tamanho real dele. O web não reserva: desvio declarado na especificação, por decisão do
+ * operador em 03/10/2026.
+ */
+@Composable
+private fun ReservaDoSelo() {
+    val interno = Tema.espacos.interno
+    SeloVencedor(
+        Modifier
+            .clearAndSetSemantics {}
+            .layout { medivel, restricoes ->
+                val selo = medivel.measure(Constraints())
+                val avanco = AVANCO_DO_SELO.roundToPx()
+                val recuo = interno.roundToPx()
+                val largura = if (selo.height - avanco > recuo) {
+                    (selo.width - avanco - recuo + ESPACO_ANTES_DO_SELO.roundToPx()).coerceIn(0, restricoes.maxWidth)
+                } else {
+                    0
+                }
+                layout(largura, 0) {}
+            },
+    )
+}
+
+@Composable
+private fun CabecalhoCartao(icone: String, titulo: String, vencedor: Boolean) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(icone, fontSize = 18.sp)
+        Spacer(Modifier.width(8.dp))
+        Text(titulo, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, color = Tema.cores.textoNorm)
+        if (vencedor) ReservaDoSelo()
+    }
+}
+
+/**
+ * A pílula da melhor opção abaixo dos cartões, como no web: `px-4 py-2 rounded-full bg-green-50 text-green-800 text-sm
+ * font-bold border border-green-200` (ResultPanel.tsx), com 38 dp de altura na fonte padrão. Até a 1.0.2 ela usava a
+ * [Pilula] dos indicadores, de 10 sp (CALANDR-32). No CSS a borda fica fora do padding; aqui ela é desenhada dentro da
+ * caixa, e por isso o recuo tem 1 dp a mais de cada lado. O espaçamento entre letras é o normal do web, e não os 0,5 sp
+ * que o `bodyLarge` do Material 3 daria; quando o texto quebra, as linhas ficam centralizadas, como o `text-center` do
+ * contêiner no web.
+ */
+@Composable
+private fun PilulaMelhorOpcao(texto: String) {
+    val forma = RoundedCornerShape(percent = 50)
+    Text(
+        text = texto,
+        fontSize = 14.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.sp,
+        textAlign = TextAlign.Center,
+        fontWeight = FontWeight.Bold,
+        color = Tema.cores.melhorOpcaoTexto,
+        modifier = Modifier
+            .testTag(Marcas.MELHOR_OPCAO)
+            .background(Tema.cores.melhorOpcaoFundo, forma)
+            .border(1.dp, Tema.cores.melhorOpcaoBorda, forma)
+            .padding(horizontal = 17.dp, vertical = 9.dp),
+    )
+}
+
+/**
+ * O quanto o selo sobressai do cartão, para cima e para a direita. No web, os 10 px de `-top-2.5 -right-2.5` contam de
+ * dentro da borda de 1 px do cartão (o deslocamento absoluto do CSS parte da face interna da borda, o limite do
+ * padding), ou seja, 9 px além dela.
+ */
+private val AVANCO_DO_SELO = 9.dp
+
+/** O vão entre o fim do título e o selo, quando o título reserva espaço para ele. */
+private val ESPACO_ANTES_DO_SELO = 8.dp
 
 @Composable
 private fun Custo(custo: CustoConversao) {
@@ -581,7 +695,12 @@ private fun Indicadores(modalidade: Modalidade.Suportada) {
     val contingencia = modalidade.fonteSpot == FonteSpot.ULTIMO_SPOT_SALVO ||
         modalidade.fonteSpot == FonteSpot.PTAX_CONTINGENCIA
     if (modalidade.plantao == true || contingencia) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Como os `inline-block` do web: a pílula que não cabe ao lado da outra desce para a linha de baixo, em vez de
+        // ser espremida até partir a palavra (CALANDR-32).
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             if (modalidade.plantao == true) {
                 Pilula(stringResource(R.string.pilula_plantao), Tema.cores.destaqueSaldo, Tema.cores.textoNorm)
             }
@@ -720,12 +839,18 @@ private fun CartaoCenario(cenario: CenarioCusto, provavel: CenarioCompraEmReais?
         tinta = if (destaque) Tema.cores.destaqueSaldo else androidx.compose.ui.graphics.Color.Transparent,
         destacado = destaque,
     ) {
+        // Como no web (`ml-auto` no cabeçalho do cenário, CompraReaisPanel.tsx): a pílula é medida primeiro e mantém a
+        // largura dela; o título fica com o resto e quebra entre palavras (CALANDR-32).
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(stringResource(iconeDoCenario(cenario.cenario)), fontSize = 16.sp)
                 Text(
                     text = stringResource(rotuloDoCenario(cenario.cenario)),
@@ -776,10 +901,11 @@ private fun rotuloDaFonte(fonte: FonteSpot?): Int = when (fonte) {
     null -> R.string.fonte_ptax
 }
 
+/** Os rótulos curtos da melhor opção no web (`useSimulation.ts`), e não os títulos dos cartões (CALANDR-32). */
 private fun rotuloDaOpcao(opcao: Opcao): Int = when (opcao) {
-    Opcao.CARTAO -> R.string.cartao_credito
-    Opcao.CONTA_GLOBAL -> R.string.cartao_global
-    Opcao.SALDO_EXISTENTE -> R.string.cartao_saldo
+    Opcao.CARTAO -> R.string.opcao_cartao
+    Opcao.CONTA_GLOBAL -> R.string.opcao_global
+    Opcao.SALDO_EXISTENTE -> R.string.opcao_saldo
 }
 
 private fun rotuloDaQualidade(qualidade: QualidadeBacktest): Int = when (qualidade) {
