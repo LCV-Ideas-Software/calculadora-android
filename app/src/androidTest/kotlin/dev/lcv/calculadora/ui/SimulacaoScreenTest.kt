@@ -11,7 +11,12 @@ import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.shadow.Shadow
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.platform.InspectableValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.DeviceConfigurationOverride
@@ -23,6 +28,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
@@ -34,6 +40,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollTo
@@ -51,7 +58,11 @@ import androidx.compose.ui.test.withKeyDown
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
@@ -66,6 +77,8 @@ import dev.lcv.calculadora.calc.Opcao
 import dev.lcv.calculadora.calc.Parametros
 import dev.lcv.calculadora.calc.melhorOpcao
 import java.math.BigDecimal
+import kotlin.math.ceil
+import kotlin.math.roundToInt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -975,6 +988,296 @@ class SimulacaoScreenTest {
         compose.onNodeWithTag(Marcas.CABECALHO).performTouchInput { swipeUp() }
         tituloDoCabecalho().assertIsNotDisplayed()
     }
+
+    // CALANDR-34 — o selo, as pílulas e o cartão de cenário com a aparência do web, com as decisões do operador de
+    // 04/10/2026 sobre o contraste (Discussion #89). Os tamanhos são conferidos em pixels contra o que o Compose faz com
+    // os valores do web: a linha arredondada para cima e cada recuo para o pixel mais próximo. A cor do texto vem do
+    // estilo do layout. A do fundo vem de um pixel da tela perto da borda esquerda, onde não há texto; um fundo
+    // translúcido é conferido contra o que está atrás dele, num pixel logo ao lado.
+
+    /** A pílula medida pela marca: a linha do texto e o recuo de cada lado, em pixels, a caixa e o estilo do texto. */
+    private class MedidaDePilula(
+        val linha: Float,
+        val recuoHorizontal: Float,
+        val recuoVertical: Float,
+        val caixa: Rect,
+        val estilo: TextStyle,
+    )
+
+    /**
+     * Com [rolar] falso, mede onde a pílula está: as caixas de um mesmo caso são medidas numa rolagem só, porque cada
+     * `performScrollTo` pode mover a tela e mudar a posição na raiz.
+     */
+    private fun medirPilula(marca: String, indice: Int = 0, rolar: Boolean = true): MedidaDePilula {
+        val no = compose.onAllNodesWithTag(marca, useUnmergedTree = true)[indice].let { if (rolar) it.performScrollTo() else it }
+        val layout = no.layoutDoTexto()
+        val tamanho = no.fetchSemanticsNode().size
+        return MedidaDePilula(
+            linha = layout.getLineBottom(0) - layout.getLineTop(0),
+            recuoHorizontal = (tamanho.width - layout.size.width) / 2f,
+            recuoVertical = (tamanho.height - layout.size.height) / 2f,
+            caixa = caixa(no),
+            estilo = layout.layoutInput.style,
+        )
+    }
+
+    /** A linha de [sp] em pixels, arredondada para cima, como o Compose faz. A fonte dos casos é a padrão. */
+    private fun linhaEsperada(sp: Float): Float = ceil(sp * compose.density.density)
+
+    /** O recuo de [dp] em pixels, arredondado para o pixel mais próximo, como o Compose faz. */
+    private fun recuoEsperado(dp: Float): Float = (dp * compose.density.density).roundToInt().toFloat()
+
+    private fun px(dp: Dp): Float = with(compose.density) { dp.toPx() }
+
+    /** A cor de um pixel da tela, nas coordenadas da raiz. */
+    private fun corNaRaiz(x: Float, y: Float): Color =
+        compose.onRoot().captureToImage().toPixelMap()[x.roundToInt(), y.roundToInt()]
+
+    private fun assertCor(nome: String, esperada: Color, medida: Color) {
+        val tolerancia = 3f / 255f
+        assertEquals("$nome: vermelho de $medida", esperada.red, medida.red, tolerancia)
+        assertEquals("$nome: verde de $medida", esperada.green, medida.green, tolerancia)
+        assertEquals("$nome: azul de $medida", esperada.blue, medida.blue, tolerancia)
+    }
+
+    /** O fundo opaco da pílula, num pixel a 3 dp da borda esquerda, na metade da altura. */
+    private fun assertFundoOpaco(nome: String, pilula: MedidaDePilula, esperado: Color) =
+        assertCor(nome, esperado, corNaRaiz(pilula.caixa.left + px(3.dp), pilula.caixa.center.y))
+
+    /** As sombras do nó, pelos valores que o elemento oficial do `dropShadow` publica para o inspetor. */
+    private fun sombras(marca: String): List<Shadow> =
+        compose.onNodeWithTag(marca, useUnmergedTree = true).fetchSemanticsNode().layoutInfo.getModifierInfo()
+            .mapNotNull { it.modifier as? InspectableValue }
+            .filter { it.nameFallback == "dropShadow" }
+            .map { valor -> valor.inspectableElements.first { it.name == "dropShadow" }.value as Shadow }
+
+    /** O modo cobrado em reais com o cenário provável: R$ 100,00 cobrados como R$ 109,19, a dupla conversão. */
+    private fun calcularEmReais(aparelho: DeviceConfigurationOverride) {
+        val vm = montarNoAparelho(aparelho)
+        marcarDcc()
+        partirDe(vm.campoValor, "10000")
+        partirDe(vm.campoFatura, "10919")
+        calcular()
+        compose.waitUntil(TEMPO_LIMITE) { compose.onAllNodesWithTag(Marcas.CENARIOS).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun oSeloTemAsCoresOPesoEASombraDoWeb() {
+        // `bg-amber-400 text-amber-900 text-[10px] font-extrabold px-2.5 py-1 rounded-full shadow-md` (ComparisonCard.tsx).
+        val vm = calcularNoAparelho(FONTE_PADRAO, valor = "100000")
+        assertEquals("pré-condição: a Conta Global vence", Opcao.CONTA_GLOBAL, vencedor(vm))
+        val selo = medirPilula(Marcas.SELO)
+
+        assertEquals("cor do texto do selo", Color(0xFF7B3306), selo.estilo.color)
+        assertEquals("peso do selo", FontWeight.ExtraBold, selo.estilo.fontWeight)
+        assertEquals("espaçamento entre letras do selo, em sp", 0f, selo.estilo.letterSpacing.value, 0f)
+        assertFundoOpaco("fundo do selo", selo, Color(0xFFFFB900))
+        // O `shadow-md`: desvio-padrão de metade do raio do CSS, no `dropShadow` como raio vezes √3 (o comentário do
+        // `SeloVencedor` traz a conta).
+        assertEquals(
+            "sombras do selo",
+            listOf(
+                Shadow(5.196.dp, Color(0x1A000000), spread = (-1).dp, offset = DpOffset(0.dp, 4.dp)),
+                Shadow(3.464.dp, Color(0x1A000000), spread = (-2).dp, offset = DpOffset(0.dp, 2.dp)),
+            ),
+            sombras(Marcas.SELO),
+        )
+        // Controle, igual antes e depois: a linha de 15 sp e o recuo de 10 × 4 dp.
+        assertEquals("linha do selo, em px", linhaEsperada(15f), selo.linha, 0.5f)
+        assertEquals("recuo horizontal do selo, em px", recuoEsperado(10f), selo.recuoHorizontal, 1f)
+        assertEquals("recuo vertical do selo, em px", recuoEsperado(4f), selo.recuoVertical, 1f)
+    }
+
+    @Test
+    fun aPilulaProvavelTemOTamanhoEAsCoresDoWeb() {
+        // `text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full` (CompraReaisPanel.tsx).
+        calcularEmReais(FONTE_PADRAO)
+        val provavel = medirPilula(Marcas.PROVAVEL)
+
+        assertEquals("linha da pílula provável, em px", linhaEsperada(15f), provavel.linha, 0.5f)
+        assertEquals("recuo horizontal da pílula provável, em px", recuoEsperado(8f), provavel.recuoHorizontal, 1f)
+        assertEquals("recuo vertical da pílula provável, em px", recuoEsperado(2f), provavel.recuoVertical, 1f)
+        assertEquals("espaçamento entre letras da pílula provável, em sp", 0f, provavel.estilo.letterSpacing.value, 0f)
+        assertEquals("cor do texto da pílula provável", Color(0xFFCA3500), provavel.estilo.color)
+        assertFundoOpaco("fundo da pílula provável", provavel, Color(0xFFFFEDD4))
+    }
+
+    @Test
+    fun asPilulasDePlantaoEContingenciaTemOTamanhoAsCoresEOsVaosDoWeb() {
+        // `text-[10px] font-bold px-2 py-0.5 rounded-full`, Plantão em `bg-amber-100 text-amber-800` e Contingência em
+        // `bg-orange-100 text-orange-800 ml-1` (ComparisonCard.tsx), na linha do `text-sm` do contêiner.
+        val vm = montarNoAparelho(
+            FONTE_PADRAO,
+            viewModelEmMemoria(relogio = RELOGIO_DE_PLANTAO, provedorSpot = SPOT_FORA_DO_AR),
+        )
+        partirDe(vm.campoValor, "100000")
+        calcular()
+        assertResultadoVisivel()
+        compose.onNodeWithTag(Marcas.CONTINGENCIA, useUnmergedTree = true).performScrollTo()
+        val plantao = medirPilula(Marcas.PLANTAO, rolar = false)
+        val contingencia = medirPilula(Marcas.CONTINGENCIA, rolar = false)
+
+        for ((nome, pilula) in listOf("Plantão" to plantao, "Contingência" to contingencia)) {
+            assertEquals("linha da pílula $nome, em px", linhaEsperada(10f * 1.25f / 0.875f), pilula.linha, 0.5f)
+            assertEquals("recuo horizontal da pílula $nome, em px", recuoEsperado(8f), pilula.recuoHorizontal, 1f)
+            assertEquals("recuo vertical da pílula $nome, em px", recuoEsperado(2f), pilula.recuoVertical, 1f)
+            assertEquals("espaçamento entre letras da pílula $nome, em sp", 0f, pilula.estilo.letterSpacing.value, 0f)
+        }
+        assertEquals("cor do texto do Plantão", Color(0xFF973C00), plantao.estilo.color)
+        assertEquals("cor do texto da Contingência", Color(0xFF9F2D00), contingencia.estilo.color)
+        assertFundoOpaco("fundo do Plantão", plantao, Color(0xFFFEF3C6))
+        assertFundoOpaco("fundo da Contingência", contingencia, Color(0xFFFFEDD4))
+
+        // Lado a lado, o `ml-1`: 4 dp entre as duas.
+        assertEquals("pré-condição: as duas pílulas na mesma linha", plantao.caixa.top, contingencia.caixa.top, 1f)
+        assertEquals("vão entre as pílulas, em px", recuoEsperado(4f), contingencia.caixa.left - plantao.caixa.right, 1f)
+        // Da linha do VET às pílulas: os 10 px de margem do web mais os 2,2 px da linha do `text-sm` (VAO_DO_VET).
+        val vet = caixa(
+            compose.onNode(
+                hasText(contexto.getString(R.string.rotulo_vet)) and hasAnyAncestor(hasTestTag(Marcas.CARTAO_GLOBAL)),
+                useUnmergedTree = true,
+            ),
+        )
+        assertEquals("vão entre a linha do VET e as pílulas, em dp", 12.2f, (plantao.caixa.top - vet.bottom) / compose.density.density, 0.5f)
+    }
+
+    @Test
+    fun quandoAsPilulasDePlantaoEContingenciaQuebramOVaoEODoWeb() {
+        // Com a fonte no máximo em 300 dp, as duas não cabem lado a lado. No web, o `space-y-2.5` dá 10 px de margem
+        // embaixo do Plantão, e a linha do `text-sm` soma 2,2 px antes da Contingência.
+        val vm = montarNoAparelho(
+            TELA_DE_300_DP_FONTE_MAXIMA,
+            viewModelEmMemoria(relogio = RELOGIO_DE_PLANTAO, provedorSpot = SPOT_FORA_DO_AR),
+        )
+        partirDe(vm.campoValor, "100000")
+        calcular()
+        assertResultadoVisivel()
+        // As duas caixas numa rolagem só (ver `medirPilula`).
+        compose.onNodeWithTag(Marcas.CONTINGENCIA, useUnmergedTree = true).performScrollTo()
+        val plantao = caixa(compose.onNodeWithTag(Marcas.PLANTAO, useUnmergedTree = true))
+        val contingencia = caixa(compose.onNodeWithTag(Marcas.CONTINGENCIA, useUnmergedTree = true))
+
+        assertTrue("pré-condição: a Contingência desceu para a linha de baixo", contingencia.top >= plantao.bottom)
+        assertEquals(
+            "vão entre as pílulas que quebram, em dp",
+            12.2f,
+            (contingencia.top - plantao.bottom) / compose.density.density,
+            0.5f,
+        )
+        // O `ml-1` do web é margem da própria Contingência: na linha de baixo, ela começa 4 dp para dentro.
+        assertEquals(
+            "recuo da Contingência na linha de baixo, em dp",
+            4f,
+            (contingencia.left - plantao.left) / compose.density.density,
+            0.5f,
+        )
+    }
+
+    @Test
+    fun aQualidadeExcelenteDoBacktestTemOTamanhoEOsRotulosDoWebEAsCoresDecididas() {
+        assertQualidadeDoBacktest("5.3800", "🏆 Excelente", texto = Color(0xFF166534), matiz = Color(0xFF16A34A))
+        // Os rótulos do painel voltam aos do web (BacktestPanel.tsx), por decisão do operador de 04/10/2026.
+        for (rotulo in listOf("🧪 Backtest (7 dias)", "MAPE 7d", "Erro atual")) {
+            compose.onNodeWithText(rotulo, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun aQualidadeBoaDoBacktestTemAsCoresDecididas() =
+        assertQualidadeDoBacktest("5.3200", "✅ Boa", texto = Color(0xFF854D0E), matiz = Color(0xFFEAB308))
+
+    @Test
+    fun aQualidadeAtencaoDoBacktestTemAsCoresDecididas() =
+        assertQualidadeDoBacktest("5.2500", "⚠️ Atenção", texto = Color(0xFF991B1B), matiz = Color(0xFFDC2626))
+
+    /**
+     * A pílula da qualidade: `px-3 py-1 rounded-full text-xs font-bold` (BacktestPanel.tsx), com o fundo do web, a cor a
+     * 12%, e o texto no tom 800 da mesma cor (desvio declarado, decisão do operador de 04/10/2026).
+     */
+    private fun assertQualidadeDoBacktest(spot: String, rotulo: String, texto: Color, matiz: Color) {
+        val vm = montarNoAparelho(FONTE_PADRAO, viewModelEmMemoria(provedorSpot = spotComInstante(spot)))
+        partirDe(vm.campoValor, "100000")
+        calcular()
+        assertResultadoVisivel()
+        compose.waitUntil(TEMPO_LIMITE) { compose.onAllNodesWithTag(Marcas.QUALIDADE).fetchSemanticsNodes().isNotEmpty() }
+        val pilula = medirPilula(Marcas.QUALIDADE)
+
+        assertEquals(
+            "rótulo da qualidade",
+            rotulo,
+            compose.onNodeWithTag(Marcas.QUALIDADE, useUnmergedTree = true).layoutDoTexto().layoutInput.text.text,
+        )
+        assertEquals("tamanho da fonte da qualidade, em sp", 12f, pilula.estilo.fontSize.value, 0f)
+        assertEquals("linha da qualidade, em px", linhaEsperada(16f), pilula.linha, 0.5f)
+        assertEquals("recuo horizontal da qualidade, em px", recuoEsperado(12f), pilula.recuoHorizontal, 1f)
+        assertEquals("recuo vertical da qualidade, em px", recuoEsperado(4f), pilula.recuoVertical, 1f)
+        assertEquals("espaçamento entre letras da qualidade, em sp", 0f, pilula.estilo.letterSpacing.value, 0f)
+        assertEquals("cor do texto da qualidade", texto, pilula.estilo.color)
+        val y = pilula.caixa.center.y
+        val atras = corNaRaiz(pilula.caixa.left - px(3.dp), y)
+        assertCor(
+            "fundo da qualidade sobre o painel ($atras)",
+            matiz.copy(alpha = 0.12f).compositeOver(atras),
+            corNaRaiz(pilula.caixa.left + px(3.dp), y),
+        )
+    }
+
+    @Test
+    fun asLinhasDoCenarioTemOTamanhoEOAlinhamentoDoWeb() {
+        // O total: `flex justify-between items-baseline`, rótulo `text-xs` e valor `text-lg font-extrabold
+        // text-slate-900`. O acréscimo: `text-xs`, com o valor em `font-semibold text-slate-700`
+        // (CompraReaisPanel.tsx). Os rótulos ficam no cinza #475569 (desvio declarado, decisão do operador de
+        // 04/10/2026).
+        calcularEmReais(FONTE_PADRAO)
+        val rotulos = compose.onAllNodesWithTag(Marcas.ROTULO_CENARIO, useUnmergedTree = true)
+        val valores = compose.onAllNodesWithTag(Marcas.VALOR_CENARIO, useUnmergedTree = true)
+        // Em cada cartão, a primeira linha é a do total e a segunda, a do acréscimo.
+        val rotuloDoTotal = rotulos[0].performScrollTo()
+        val valorDoTotal = valores[0]
+
+        for ((nome, no) in listOf("rótulo do total" to rotuloDoTotal, "rótulo do acréscimo" to rotulos[1])) {
+            val estilo = no.layoutDoTexto().layoutInput.style
+            assertEquals("tamanho do $nome, em sp", 12f, estilo.fontSize.value, 0f)
+            assertEquals("peso do $nome", FontWeight.Normal, estilo.fontWeight ?: FontWeight.Normal)
+            assertEquals("espaçamento entre letras do $nome, em sp", 0f, estilo.letterSpacing.value, 0f)
+            assertEquals("cor do $nome", Color(0xFF475569), estilo.color)
+            val layout = no.layoutDoTexto()
+            assertEquals("linha do $nome, em px", linhaEsperada(16f), layout.getLineBottom(0) - layout.getLineTop(0), 0.5f)
+        }
+        val total = valorDoTotal.layoutDoTexto()
+        assertEquals("tamanho do total, em sp", 18f, total.layoutInput.style.fontSize.value, 0f)
+        assertEquals("peso do total", FontWeight.ExtraBold, total.layoutInput.style.fontWeight)
+        assertEquals("espaçamento entre letras do total, em sp", 0f, total.layoutInput.style.letterSpacing.value, 0f)
+        assertEquals("linha do total, em px", linhaEsperada(28f), total.getLineBottom(0) - total.getLineTop(0), 0.5f)
+        assertEquals("cor do total", Color(0xFF0F172B), total.layoutInput.style.color)
+        // `items-baseline`: o rótulo e o valor na mesma linha de base.
+        val baseRotulo = caixa(rotuloDoTotal).top + rotuloDoTotal.layoutDoTexto().firstBaseline
+        val baseValor = caixa(valorDoTotal).top + total.firstBaseline
+        assertEquals("linha de base do rótulo e do total, em px", baseRotulo, baseValor, 1f)
+
+        val acrescimo = valores[1].layoutDoTexto()
+        assertEquals("tamanho do acréscimo, em sp", 12f, acrescimo.layoutInput.style.fontSize.value, 0f)
+        assertEquals("peso do acréscimo", FontWeight.SemiBold, acrescimo.layoutInput.style.fontWeight)
+        assertEquals("cor do acréscimo", Color(0xFF314158), acrescimo.layoutInput.style.color)
+        assertEquals("linha do acréscimo, em px", linhaEsperada(16f), acrescimo.getLineBottom(0) - acrescimo.getLineTop(0), 0.5f)
+    }
+
+    @Test
+    fun oCabecalhoDoCartaoDeCenarioEODoWeb() {
+        // O ícone `text-lg` e o título `text-sm font-bold text-slate-700` (CompraReaisPanel.tsx). O fundo do cartão não é
+        // conferido por pixel: a superfície do cartão é translúcida, e a sombra de elevação aparece através dela; ele e o
+        // contorno do provável são conferidos nas capturas.
+        calcularEmReais(FONTE_PADRAO)
+        val icone = compose.onAllNodesWithTag(Marcas.ICONE_CENARIO, useUnmergedTree = true)[0].performScrollTo().layoutDoTexto()
+        assertEquals("tamanho do ícone do cenário, em sp", 18f, icone.layoutInput.style.fontSize.value, 0f)
+        assertEquals("linha do ícone do cenário, em px", linhaEsperada(28f), icone.getLineBottom(0) - icone.getLineTop(0), 0.5f)
+        assertEquals("espaçamento entre letras do ícone do cenário, em sp", 0f, icone.layoutInput.style.letterSpacing.value, 0f)
+        val titulo = compose.onAllNodesWithTag(Marcas.TITULO_CENARIO, useUnmergedTree = true)[0].layoutDoTexto()
+        assertEquals("tamanho do título do cenário, em sp", 14f, titulo.layoutInput.style.fontSize.value, 0f)
+        assertEquals("linha do título do cenário, em px", linhaEsperada(20f), titulo.getLineBottom(0) - titulo.getLineTop(0), 0.5f)
+        assertEquals("espaçamento entre letras do título do cenário, em sp", 0f, titulo.layoutInput.style.letterSpacing.value, 0f)
+        assertEquals("cor do título do cenário", Color(0xFF314158), titulo.layoutInput.style.color)
+    }
 }
 
 /**
@@ -984,6 +1287,13 @@ class SimulacaoScreenTest {
  */
 private val TELA_ESTREITA_FONTE_MAXIMA =
     DeviceConfigurationOverride.FontScale(2f) then DeviceConfigurationOverride.ForcedSize(DpSize(360.dp, 720.dp))
+/**
+ * Estreita o bastante para as pílulas de plantão e contingência não caberem lado a lado com a fonte no máximo: elas
+ * somam 283 dp com o vão, e aqui sobram 236 dp de largura útil no cartão (CALANDR-34). A altura cabe na área do
+ * aparelho, para o `ForcedSize` não reduzir a densidade, e o dp dos casos ser o da regra.
+ */
+private val TELA_DE_300_DP_FONTE_MAXIMA =
+    DeviceConfigurationOverride.FontScale(2f) then DeviceConfigurationOverride.ForcedSize(DpSize(300.dp, 600.dp))
 private val TELA_ESTREITA_FONTE_PADRAO =
     DeviceConfigurationOverride.FontScale(1f) then DeviceConfigurationOverride.ForcedSize(DpSize(360.dp, 720.dp))
 private val PIXEL_2_FONTE_UM_POUCO_MAIOR =

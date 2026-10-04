@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -153,9 +155,12 @@ fun CartaoVidro(
 }
 
 /**
- * Indicador curto em pílula, como `bg-amber-100 text-amber-800 rounded-full` no web. A altura da linha é 1,5 vez a
- * fonte, a do selo e a da pílula do cenário no web (`text-[10px]` sobre o `line-height: 1.5` da página); sem ela, a
- * pílula herdava os 24 sp do `bodyLarge` e ficava com 32 dp de altura em vez de 23 dp (CALANDR-32).
+ * Indicador curto em pílula, o `rounded-full` do web, com o espaçamento normal entre letras do web, e não os 0,5 sp
+ * que o `bodyLarge` do Material 3 daria. O padrão é o das pílulas pequenas, `text-[10px] font-bold px-2 py-0.5`, com a
+ * linha de 1,5 vez a fonte: o `text-[10px]` não muda a altura da linha, e vale o `line-height: 1.5` da página, como na
+ * pílula "provável". Sem ela, a pílula herdava os 24 sp do `bodyLarge` (CALANDR-32). Passam os próprios valores o selo
+ * (peso e recuo), as pílulas de plantão e contingência (a linha do `text-sm` do contêiner) e a pílula do backtest
+ * (tamanho, linha e recuo).
  */
 @Composable
 fun Pilula(
@@ -163,16 +168,21 @@ fun Pilula(
     fundo: Color,
     cor: Color,
     modifier: Modifier = Modifier,
+    tamanho: TextUnit = 10.sp,
+    alturaDaLinha: TextUnit = 1.5.em,
+    peso: FontWeight = FontWeight.Bold,
+    recuo: PaddingValues = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
 ) {
     Text(
         text = texto,
-        fontSize = 10.sp,
-        lineHeight = 1.5.em,
-        fontWeight = FontWeight.Bold,
+        fontSize = tamanho,
+        lineHeight = alturaDaLinha,
+        letterSpacing = 0.sp,
+        fontWeight = peso,
         color = cor,
         modifier = modifier
             .background(fundo, RoundedCornerShape(percent = 50))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(recuo),
     )
 }
 

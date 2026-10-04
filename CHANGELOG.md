@@ -63,10 +63,8 @@ All material changes to `calculadora-android` are recorded here.
   as in the web's `ComparisonCard`: it sits over the card's top-right corner,
   9 dp outside it, as the web's `-top-2.5 -right-2.5` do, since CSS counts
   those 10 px from inside the card's 1 px border. It is drawn outside the
-  card surface, so it is not clipped, and the title no longer squeezes it.
-  An elevation shadow stands in for the web's `shadow-md`; reproducing that
-  shadow exactly is tracked in CALANDR-34, with the badge's other old
-  differences (CALANDR-32).
+  card surface, so it is not clipped, and the title no longer squeezes it
+  (CALANDR-32).
 - The "provável" pill of the scenario cards in "cobrado em reais" mode had the
   same measuring order. At 1.3 font scale on Pixel 2 width it broke into one
   letter per line. Its title now takes the remaining width, as the web's
@@ -79,10 +77,9 @@ All material changes to `calculadora-android` are recorded here.
   when it does not fit beside the date. The indicators flow onto the next line,
   as the web's `inline-block` pills do (CALANDR-32).
 - The small pills (the badge, "provável", the indicators and the backtest
-  quality pill) use a line height of 1.5 times their font, as the web's
-  badge and scenario pill do, instead of inheriting the 24 sp of
-  `bodyLarge`. At the default font they are 23 dp tall instead of 32 dp
-  (CALANDR-32).
+  quality pill) no longer inherit the 24 sp line height of `bodyLarge`, which
+  made them 32 dp tall at the default font. They take the web's line heights
+  (CALANDR-32, CALANDR-34).
 - The "✅" best-option pill under the result cards reused the small 10 sp pill
   and the card title. It now has the web's `text-sm px-4 py-2 border
   border-green-200 bg-green-50 text-green-800`: 14 sp text with the normal
@@ -133,6 +130,30 @@ All material changes to `calculadora-android` are recorded here.
   (operator's decision of 04/10/2026). It is never drawn under the status
   bar, which CALANDR-31 fixed, because the content starts below it
   (CALANDR-35).
+- The badge, the small pills and the scenario cards kept old differences
+  from the web. They now follow the web's classes, with Tailwind 4's OKLCH
+  colors converted to sRGB (CALANDR-34):
+  - the "⭐ MELHOR" badge has the web's amber-400 background, amber-900 text
+    and extra-bold weight. Its `shadow-md` is drawn with Compose's
+    `Modifier.dropShadow`, with the CSS blur converted to the Android blur
+    radius;
+  - the "provável", "🌙 Plantão" and "⚡ Contingência" pills have the web's
+    padding and orange and amber colors. The gaps between the indicators, and
+    between them and the VET line, are the web's. "⚡ Contingência" has the
+    web's 4 dp left margin also when it stands alone or wraps;
+  - the backtest quality pill has the web's 12 sp text and padding. Its
+    labels ("🏆 Excelente", "✅ Boa", "⚠️ Atenção") and the panel's are the
+    web's again;
+  - the scenario cards have the web's icon, title, total and "Acréscimo"
+    sizes and colors, with the total on the label's baseline, and the
+    highlighted card has the web's tint and outline;
+  - the letter spacing of these texts is the web's normal 0, not Material's
+    0.5 sp.
+
+  Two color differences stay, declared in the specification by the
+  operator's decisions of 04/10/2026, so that the text meets the AA contrast
+  of 4.5:1: the quality pill's text is one tone darker than the web's, and
+  the scenario labels keep the app's gray.
 
 ## [1.0.2] — 03/10/2026
 

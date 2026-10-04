@@ -37,6 +37,15 @@ private val SPOT_RESPONDE = ProvedorSpot { CotacaoSpotBruta(BigDecimal("5.3800")
 internal val SPOT_FORA_DO_AR = ProvedorSpot { null }
 
 /**
+ * A AwesomeAPI responde com o instante da cotação, uma hora antes do relógio de teste: o mesmo dia da PTAX e da compra,
+ * a condição para o backtest registrar a observação e mostrar a qualidade. Contra a PTAX de 5,4000 e o fator de
+ * calibragem padrão (0,99934), 5,3800 erra 0,44% (excelente), 5,3200 erra 1,55% (boa) e 5,2500 erra 2,84% (atenção).
+ */
+internal fun spotComInstante(taxa: String) = ProvedorSpot {
+    CotacaoSpotBruta(BigDecimal(taxa), FonteSpot.AWESOME_API, Instant.parse("2026-09-18T14:00:00Z"))
+}
+
+/**
  * O `SimulacaoViewModel` construído à mão sobre fontes e DAOs em memória, sem Hilt e sem rede: o grafo de injeção
  * do aplicativo não é o objeto dos testes instrumentados, e depender da rede tornaria o resultado dependente do dia.
  */
