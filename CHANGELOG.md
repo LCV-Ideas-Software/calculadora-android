@@ -17,6 +17,31 @@ All material changes to `calculadora-android` are recorded here.
 - The scroll loop of `tocarNoFormulario` in `:teste-release` no longer raises
   the "Expression is unused" compiler warning; it scrolls the same way, at
   most ten times.
+- The live-quote flow of `:teste-release` failed on weekends with the app
+  right (CALANDR-36). It required the Conta Global to show the AwesomeAPI or
+  Yahoo label whenever one of them answered HTTP 200, but the app accepts an
+  exchange quote only up to 24 hours old (`IDADE_MAXIMA_SPOT`) and falls back
+  to the PTAX otherwise. With the market closed, both sources answer with
+  Friday's quote. Measured on Sunday 04/10/2026: 41 and 28.5 hours old, and
+  the flow failed on `main` too. By the operator's decision, the flow no
+  longer judges the exchange quote; the app decides whether to accept it, and
+  that rule is covered by the `:core:data` unit tests. A live AwesomeAPI or
+  Yahoo label on the Conta Global proves the minified exchange path, and the
+  flow passes. A fallback (the last saved value or the PTAX fallback) does not
+  prove it, and the flow is reported as skipped. When the Central Bank answers
+  the test, the PTAX label stays required, and a Conta Global with no source
+  at all fails the flow.
+- `:teste-release` waits for an element by scrolling with UI Automator's
+  `scrollUntil`. The app sends UI Automator no scroll event, so `scroll`
+  reported the end at every step. The old search turned around at every
+  reported end and swung half a screen down and up without reaching the
+  Conta Global card (measured on 04/10/2026).
+- Each `:teste-release` flow opens the app a second time when the first
+  launch does not show the form. After `pm clear` returns, the system can
+  still kill the app launched right after it: in a CI run on 04/10/2026, the
+  app opened 0.8 s after `pm clear` and was killed 0.3 s later, and the flow
+  failed with "o aplicativo não abriu". A launch counts only once the
+  Calcular button is on screen, not when the package's window appears.
 
 ### Fixed
 
