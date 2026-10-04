@@ -58,6 +58,11 @@ data class CoresLcv(
     val destaqueSaldo: Color,
     val vencedor: Color,
     val vencedorTexto: Color,
+    // A pílula da melhor opção, abaixo dos cartões: `bg-green-50 text-green-800 border-green-200` do web. O Tailwind 4
+    // define esses tons em OKLCH; aqui estão convertidos para sRGB, onde os três cabem sem ajuste.
+    val melhorOpcaoFundo: Color,
+    val melhorOpcaoTexto: Color,
+    val melhorOpcaoBorda: Color,
 ) {
     companion object {
         val Claro = CoresLcv(
@@ -81,6 +86,9 @@ data class CoresLcv(
             destaqueSaldo = Color(0x1AF59E0B),
             vencedor = Color(0xFFF59E0B),
             vencedorTexto = Color(0xFF101827),
+            melhorOpcaoFundo = Color(0xFFF0FDF4),
+            melhorOpcaoTexto = Color(0xFF016630),
+            melhorOpcaoBorda = Color(0xFFB9F8CF),
         )
     }
 }

@@ -26,8 +26,11 @@ já existe no web. O que não se reproduz com honestidade num aparelho — desfo
 de fundo ao vivo, animação permanente atrás do conteúdo — é registrado como
 desvio declarado, nunca trocado em silêncio.
 
-São dois, e só dois, os desvios de aparência da entrega do `:app`
-(CALANDR-16):
+São quatro, e só quatro, os desvios de aparência do `:app`. Os dois primeiros
+vêm da entrega (CALANDR-16). Os dois últimos vêm da correção do selo do cartão
+vencedor, por decisões do operador em 03 e 04/10/2026 (CALANDR-32), e só
+aparecem com fonte grande ou tela estreita; no tamanho padrão, eles não
+aparecem.
 
 1. **Não há a tela de partículas animada atrás do conteúdo.** O web anima um
    `canvas` permanente no fundo. Num telefone isso mantém a GPU e o
@@ -37,6 +40,24 @@ São dois, e só dois, os desvios de aparência da entrega do `:app`
 2. **Não há paleta escura.** A marca define tons claros; um tema escuro exigiria
    inventar tons que ela não tem, o que seria criar identidade em vez de portá-la.
    O tema é declaradamente claro até que a marca defina os tons escuros.
+3. **Com fonte grande, o título do cartão vencedor deixa espaço para o selo.**
+   O selo "⭐ MELHOR" fica sobreposto ao canto superior direito do cartão, como
+   no web. No Android, a fonte cresce com a escala do sistema, mas a margem do
+   cartão não; com fonte grande, o selo desceria sobre a primeira linha do
+   título. Só nesse caso, a linha do título deixa livre, no fim, a parte do
+   selo que fica sobre o conteúdo do cartão, mais um vão de 8 dp, e o título
+   quebra antes dele. O web não faz essa reserva.
+4. **Com fonte grande, só o valor quebra, e ele desce se não couber.** Nas
+   linhas de rótulo e valor dos cartões, quando os dois não cabem lado a lado,
+   o rótulo fica com a largura dele, e o valor quebra entre palavras no espaço
+   ao lado, ainda à direita ("R$" em cima de "545,99", ao lado de "Total em
+   Reais"). Quando nem a maior palavra do valor cabe ao lado do rótulo, o valor
+   desce para a linha de baixo. Nada é partido no meio da palavra. No web, os
+   dois lados encolhem e quebram entre palavras. O `FlexBox` oficial do
+   Compose 1.12.1 faria o mesmo, mas ainda é API experimental
+   (`@ExperimentalFlexBoxApi`), e o operador decidiu, em 04/10/2026, manter o
+   `FlowRow`. Até a 1.0.2, a linha media o rótulo primeiro e deixava ao valor
+   só a sobra, que o partia ao meio ("R$ 5.896,|40").
 
 Tudo o mais que difere é imposto pela plataforma, não escolhido: barra superior
 e conteúdo de largura cheia no lugar do painel centralizado que o navegador

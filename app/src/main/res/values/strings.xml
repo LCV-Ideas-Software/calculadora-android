@@ -67,6 +67,9 @@
     <string name="icone_saldo">💰</string>
     <string name="selo_vencedor">⭐ MELHOR</string>
     <string name="melhor_opcao">✅ %1$s</string>
+    <string name="opcao_cartao">💳 Cartão de Crédito</string>
+    <string name="opcao_global">🌐 Conta Global</string>
+    <string name="opcao_saldo">💰 Saldo Existente</string>
 
     <string name="rotulo_taxa">Taxa utilizada</string>
     <string name="rotulo_fonte">Fonte cotação</string>
