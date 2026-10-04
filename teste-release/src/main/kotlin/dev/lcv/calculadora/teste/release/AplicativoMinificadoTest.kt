@@ -50,41 +50,53 @@ class AplicativoMinificadoTest {
         val intencao = instrumentacao.context.packageManager.getLaunchIntentForPackage(PACOTE)
         assertNotNull("o aplicativo $PACOTE não está instalado", intencao)
         intencao!!.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-        instrumentacao.context.startActivity(intencao)
-        assertTrue("o aplicativo não abriu", aparelho.wait(Until.hasObject(By.pkg(PACOTE).depth(0)), ESPERA))
-        achar(By.text(CALCULAR))
+        // Depois que o `pm clear` volta, o sistema ainda pode matar o aplicativo aberto logo em seguida (CI da #97, em
+        // 04/10/2026: aberto 0,8 s depois do `pm clear` e morto 0,3 s mais tarde). Por isso há uma segunda abertura; o
+        // fluxo só cai se nem ela abrir. Cada abertura só conta com o formulário na tela, e não com a janela do pacote,
+        // que pode aparecer antes de o processo morrer.
+        val abriu = (1..2).any {
+            instrumentacao.context.startActivity(intencao)
+            aparelho.wait(Until.hasObject(By.text(CALCULAR)), ESPERA)
+        }
+        assertTrue("o aplicativo não abriu", abriu)
     }
 
     /**
      * O aviso de que as cotações não vieram é o mesmo para a fonte fora do ar e para uma falha do próprio
      * aplicativo — inclusive a que o R8 causaria no Retrofit, no JSON ou no Room —, e o título do cartão aparece
-     * mesmo com a cotação indisponível (revisão da #74). Por isso o teste sonda as fontes por conta própria: a
-     * que responde obriga o aplicativo a mostrar a cotação dela, pelo rótulo da fonte, que só existe com a cotação
-     * disponível. Sem fonte alguma, o teste confere que o aplicativo não caiu e se declara pulado, não verde.
+     * mesmo com a cotação indisponível (revisão da #74). Por isso o teste sonda a PTAX por conta própria: se ela
+     * responde, o cartão tem de mostrar a cotação do Banco Central, pelo rótulo da fonte, que só existe com a cotação
+     * disponível. Sem rede, o teste confere que o aplicativo não caiu e se declara pulado, não verde.
+     *
+     * O câmbio não é julgado aqui (CALANDR-36, decisão do operador de 04/10/2026, Discussion #98). É o aplicativo que
+     * decide se aceita a cotação: com mais de 24 h, como no fim de semana, ele a recusa e a Conta Global vai para a
+     * PTAX de contingência. Essa regra é coberta pelos testes de unidade do `:core:data`. O rótulo da AwesomeAPI ou do
+     * Yahoo prova a rede do câmbio no minificado, e o fluxo passa. As reservas (o último valor salvo e a PTAX de
+     * contingência) não provam, e o fluxo se declara pulado. Com a PTAX no ar, a Conta Global sempre mostra uma fonte;
+     * sem fonte alguma, o fluxo cai.
      */
     @Test
     fun aSimulacaoMostraACotacaoDeCadaFonteQueResponde() {
         val ptax = responde(OLINDA) || responde(CSV_BCB)
-        val cambio = responde(AWESOME) || responde(YAHOO)
-        Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio=$cambio")
+        Log.i(ROTULO, "a PTAX respondeu ao teste: $ptax")
         preencherOValorECalcular()
-        if (!ptax && !cambio) {
-            assertNotNull("nem resultado nem aviso depois de calcular", esperarRolando(By.text(Pattern.compile("$CARTAO|$SEM_COTACAO")), ESPERA_REDE))
-            assertTrue("o processo do aplicativo morreu", processoVivo())
-            assumeTrue("nenhuma fonte de cotação respondeu ao teste: a rede do minificado não foi exercitada", false)
-        }
         if (ptax) {
             assertNotNull(
                 "a PTAX respondeu ao teste, mas o cartão não mostrou a cotação do Banco Central",
                 esperarRolando(By.text(FONTE_PTAX), ESPERA_REDE),
             )
+        } else {
+            assertNotNull("nem resultado nem aviso depois de calcular", esperarRolando(By.text(Pattern.compile("$CARTAO|$SEM_COTACAO")), ESPERA_REDE))
         }
-        if (cambio) {
-            val fonte = esperarRolando(By.text(Pattern.compile("$FONTE_AWESOME|$FONTE_YAHOO")), ESPERA_REDE)
-            assertNotNull("o câmbio respondeu ao teste, mas a Conta Global não mostrou a AwesomeAPI nem o Yahoo", fonte)
-            Log.i(ROTULO, "a Conta Global usou: ${fonte!!.text}")
-        }
+        val rotulos = "$FONTE_AWESOME|$FONTE_YAHOO|$FONTE_SALVO|${Pattern.quote(FONTE_CONTINGENCIA)}"
+        val mostrada = esperarRolando(By.text(Pattern.compile(rotulos)), if (ptax) ESPERA_REDE else ESPERA)?.text
+        Log.i(ROTULO, "a Conta Global usou: $mostrada")
+        if (ptax) assertNotNull("a PTAX respondeu ao teste, mas a Conta Global não mostrou fonte alguma", mostrada)
         assertTrue("o processo do aplicativo morreu", processoVivo())
+        assumeTrue(
+            "a Conta Global não mostrou a AwesomeAPI nem o Yahoo: a rede do câmbio não foi provada",
+            mostrada == FONTE_AWESOME || mostrada == FONTE_YAHOO,
+        )
     }
 
     @Test
@@ -141,16 +153,19 @@ class AplicativoMinificadoTest {
     }
 
     /**
-     * Espera o elemento rolando a tela, porque o UI Automator só vê o que está nela: desce até o fim e volta, até
-     * o prazo, já que a ordem dos cartões depende de qual sai mais barato.
+     * Espera o elemento rolando a tela, porque o UI Automator só vê o que está nela: desce e sobe até o prazo, com a
+     * rolagem do próprio UI Automator (`scrollUntil`), que para ao achar o elemento. Neste aplicativo o UI Automator
+     * não recebe o evento de rolagem, e sem ele `scroll` responde "fim" a cada passo: a busca antiga, que trocava de
+     * sentido a cada "fim", oscilava meia tela para baixo e para cima e não chegava ao cartão da Conta Global (medido
+     * em 04/10/2026). Sem o evento, `scrollUntil` ainda rola cinco vezes antes de desistir.
      */
     private fun esperarRolando(seletor: BySelector, espera: Long): UiObject2? {
         val limite = SystemClock.uptimeMillis() + espera
         var sentido = Direction.DOWN
         while (SystemClock.uptimeMillis() < limite) {
             aparelho.findObject(seletor)?.let { return it }
-            val rolou = aparelho.findObject(By.scrollable(true))?.scroll(sentido, 0.5f) ?: false
-            if (!rolou) sentido = if (sentido == Direction.DOWN) Direction.UP else Direction.DOWN
+            aparelho.findObject(By.scrollable(true))?.scrollUntil(sentido, Until.findObject(seletor))?.let { return it }
+            sentido = if (sentido == Direction.DOWN) Direction.UP else Direction.DOWN
             SystemClock.sleep(500)
         }
         return null
@@ -194,12 +209,12 @@ class AplicativoMinificadoTest {
         const val FONTE_PTAX = "PTAX do Banco Central"
         const val FONTE_AWESOME = "AwesomeAPI"
         const val FONTE_YAHOO = "Yahoo Finance"
+        const val FONTE_SALVO = "Último valor salvo"
+        const val FONTE_CONTINGENCIA = "PTAX (contingência)"
 
         // Os mesmos endereços e caminhos de `Fontes.kt` (`:core:data`), com uma data já publicada.
         const val OLINDA = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/" +
             "CotacaoDolarDia(dataCotacao=@dataCotacao)?@dataCotacao='09-30-2026'&\$top=1&\$format=json"
         const val CSV_BCB = "https://www4.bcb.gov.br/Download/fechamento/20260930.csv"
-        const val AWESOME = "https://economia.awesomeapi.com.br/json/last/USD-BRL"
-        const val YAHOO = "https://query1.finance.yahoo.com/v8/finance/chart/BRL=X"
     }
 }
