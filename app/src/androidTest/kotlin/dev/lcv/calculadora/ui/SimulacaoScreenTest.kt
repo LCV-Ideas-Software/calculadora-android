@@ -24,6 +24,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
@@ -33,7 +34,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performScrollTo
@@ -909,48 +909,69 @@ class SimulacaoScreenTest {
         assertNumaLinha(contexto.getString(R.string.acao_escolher_data), "o botão da data")
     }
 
-    // CALANDR-35 — a barra superior rola com o conteúdo, como o cabeçalho do web: sai ao descer e só volta no topo.
-    // Com a fonte no máximo numa tela estreita ela tem um quarto da altura, e fixa tomava esse espaço o tempo todo. Os
-    // gestos são de toque, o caminho real da rolagem aninhada que a recolhe.
+    // CALANDR-35 — a barra superior é o começo do conteúdo e rola com ele, como o cabeçalho do web: sai ao descer e só
+    // volta no topo. Com a fonte no máximo numa tela estreita ela tem um quarto da altura, e fixa tomava esse espaço o
+    // tempo todo. Os gestos são de toque, dentro do contêiner rolável: num aparelho de ponta a ponta, a borda de baixo
+    // da raiz é o recuo da barra de navegação, fora dele.
 
-    /** O título fora do conteúdo rolável: o mesmo texto aparece no NOTICE, que a tela de licenças mostra. */
-    private fun tituloDaBarra() =
-        compose.onNode(hasText(contexto.getString(R.string.titulo)) and !hasAnyAncestor(hasScrollAction()))
+    /** O título do cabeçalho: o mesmo texto aparece no NOTICE, que a tela de licenças mostra. */
+    private fun tituloDoCabecalho() =
+        compose.onNode(hasText(contexto.getString(R.string.titulo)) and hasAnyAncestor(hasTestTag(Marcas.CABECALHO)))
 
-    /** A barra inteira na tela: a caixa do título recortada pelos pais tem a altura do próprio título. */
-    private fun assertBarraInteira() {
-        val titulo = tituloDaBarra().assertIsDisplayed().fetchSemanticsNode()
-        assertEquals(
-            "altura visível do título da barra",
-            titulo.size.height.toFloat(),
-            titulo.boundsInRoot.height,
-            0.5f,
-        )
+    /** O contêiner rolável do aplicativo, o único que leva o rodapé. */
+    private fun conteudo() =
+        compose.onNode(hasScrollAction() and hasAnyDescendant(hasText(contexto.getString(R.string.compliance))))
+
+    /** O nó inteiro na tela: a caixa recortada pelos pais tem a altura do próprio nó. */
+    private fun assertInteiro(no: SemanticsNodeInteraction, nome: String) {
+        val semantica = no.assertIsDisplayed().fetchSemanticsNode()
+        assertEquals("altura visível de $nome", semantica.size.height.toFloat(), semantica.boundsInRoot.height, 0.5f)
+    }
+
+    /** No topo: o cabeçalho inteiro e, logo abaixo dele, a primeira caixa do formulário inteira. */
+    private fun assertTopoDaSimulacao() {
+        assertInteiro(tituloDoCabecalho(), "o título do cabeçalho")
+        assertInteiro(compose.onNodeWithTag(Marcas.DCC), "a caixa do DCC")
     }
 
     @Test
-    fun comAFonteNoMaximoEmTelaEstreitaABarraSaiAoRolarEVoltaNoTopo() {
+    fun comAFonteNoMaximoEmTelaEstreitaOCabecalhoSaiAoRolarESoVoltaNoTopo() {
         montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
-        assertBarraInteira()
+        assertTopoDaSimulacao()
 
-        compose.onRoot().performTouchInput { swipeUp() }
-        tituloDaBarra().assertIsNotDisplayed()
+        conteudo().performTouchInput { swipeUp() }
+        compose.onNodeWithText(contexto.getString(R.string.compliance)).performScrollTo()
+        tituloDoCabecalho().assertIsNotDisplayed()
 
-        // Um gesto pode não chegar ao topo de uma tela longa: até dez, parando quando a barra reaparece.
-        repeat(10) { if (!tituloDaBarra().isDisplayed()) compose.onRoot().performTouchInput { swipeDown() } }
-        assertBarraInteira()
+        // Um gesto lento para baixo, a partir do rodapé, sem chegar ao topo: o cabeçalho não volta no meio da página.
+        conteudo().performTouchInput {
+            swipeDown(startY = top + height * 0.25f, endY = top + height * 0.6f, durationMillis = 1_000)
+        }
+        tituloDoCabecalho().assertIsNotDisplayed()
+
+        // Um gesto pode não chegar ao topo de uma tela longa: até dez, parando quando o cabeçalho reaparece.
+        repeat(10) { if (!tituloDoCabecalho().isDisplayed()) conteudo().performTouchInput { swipeDown() } }
+        assertTopoDaSimulacao()
     }
 
     @Test
-    fun aoVoltarDasLicencasComABarraRecolhidaASimulacaoApareceNoTopoComABarraInteira() {
+    fun aoVoltarDasLicencasASimulacaoApareceNoTopoComOCabecalhoInteiro() {
         montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
         compose.onNodeWithText(contexto.getString(R.string.acao_licencas)).performClick()
-        compose.onRoot().performTouchInput { swipeUp() }
-        tituloDaBarra().assertIsNotDisplayed()
+        conteudo().performTouchInput { swipeUp() }
+        tituloDoCabecalho().assertIsNotDisplayed()
 
         Espresso.pressBack()
-        compose.onNodeWithText(contexto.getString(R.string.subtitulo)).assertIsDisplayed()
-        assertBarraInteira()
+        assertTopoDaSimulacao()
+    }
+
+    @Test
+    fun umGestoQueComecaNoCabecalhoRolaAPagina() {
+        // O `TopAppBar` do Material 3 traz um `pointerInput` próprio; um gesto que começa em cima dele ainda tem de
+        // rolar a página, como no web.
+        montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
+        compose.onNodeWithTag(Marcas.CABECALHO).performTouchInput { swipeUp() }
+        tituloDoCabecalho().assertIsNotDisplayed()
     }
 }
 

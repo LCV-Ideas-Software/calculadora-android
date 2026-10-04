@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -28,20 +27,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -65,35 +61,19 @@ import dev.lcv.calculadora.R
 @Composable
 fun CalculadoraApp(viewModel: SimulacaoViewModel = hiltViewModel()) {
     var emLicencas by rememberSaveable { mutableStateOf(false) }
-    // O cabeçalho do web rola com a página: sai ao descer e só volta no topo. A barra faz o mesmo pelo
-    // recolhimento do Material 3, que recolhe a altura inteira medida, também quando a fonte grande a deixa mais
-    // alta que os 64 dp padrão; fixa, ela tomava um quarto da tela com a fonte no máximo. Com o teclado aberto ela
-    // não se move: a rolagem que leva o campo em foco para cima do teclado também chega a ela, pela rolagem
-    // aninhada, e a deixaria recolhida pela metade, cortada (CALANDR-31).
-    val teclado = WindowInsets.ime
-    val densidade = LocalDensity.current
-    val recolhimento = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(
-        canScroll = remember(teclado, densidade) { { teclado.getBottom(densidade) == 0 } },
-    )
 
     BackHandler(enabled = emLicencas) { emLicencas = false }
 
     Scaffold(
         containerColor = Color.Transparent,
-        modifier = Modifier
-            .background(Brush.verticalGradient(listOf(Tema.cores.fundoNorm, Tema.cores.fundoBaixo)))
-            .nestedScroll(recolhimento.nestedScrollConnection),
-        topBar = { BarraSuperior(emLicencas, recolhimento) { emLicencas = !emLicencas } },
+        modifier = Modifier.background(
+            Brush.verticalGradient(listOf(Tema.cores.fundoNorm, Tema.cores.fundoBaixo)),
+        ),
     ) { espacamento ->
         val rolagem = rememberScrollState()
         // O container de rolagem é um só; sem isto, trocar de tela mantém o
-        // deslocamento e a pessoa cai no meio do texto da licença. A barra volta
-        // junto: o `scrollTo` não passa pela rolagem aninhada e a deixaria
-        // recolhida no topo da outra tela.
-        LaunchedEffect(emLicencas) {
-            rolagem.scrollTo(0)
-            recolhimento.state.heightOffset = 0f
-        }
+        // deslocamento e a pessoa cai no meio do texto da licença.
+        LaunchedEffect(emLicencas) { rolagem.scrollTo(0) }
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -103,27 +83,34 @@ fun CalculadoraApp(viewModel: SimulacaoViewModel = hiltViewModel()) {
                 .consumeWindowInsets(espacamento)
                 .imePadding()
                 .indicadorDeRolagem(rolagem)
-                .verticalScroll(rolagem)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(Tema.espacos.entreSecoes),
+                .verticalScroll(rolagem),
         ) {
-            if (emLicencas) LicencasScreen() else SimulacaoScreen(viewModel)
-            Rodape()
+            // A barra é o começo do conteúdo, como o cabeçalho do web é o começo da página: sai ao rolar e só volta
+            // no topo. Fixa no `Scaffold`, ela tomava um quarto da tela com a fonte no máximo (CALANDR-35). Com o
+            // teclado aberto, quando o campo em foco precisa subir, ela rola junto, como no web (decisão do operador
+            // de 04/10/2026); nunca fica por baixo da barra de status, porque o conteúdo começa abaixo dela.
+            BarraSuperior(emLicencas) { emLicencas = !emLicencas }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(Tema.espacos.entreSecoes),
+            ) {
+                if (emLicencas) LicencasScreen() else SimulacaoScreen(viewModel)
+                Rodape()
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BarraSuperior(emLicencas: Boolean, recolhimento: TopAppBarScrollBehavior, aoAlternar: () -> Unit) {
+private fun BarraSuperior(emLicencas: Boolean, aoAlternar: () -> Unit) {
     TopAppBar(
-        // Transparente também com o conteúdo rolado: a cor de rolagem padrão do Material pintaria a faixa da barra
-        // de status, que o web não tem.
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-            scrolledContainerColor = Color.Transparent,
-        ),
-        scrollBehavior = recolhimento,
+        modifier = Modifier.testTag(Marcas.CABECALHO),
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+        // O recuo da barra de status já vem do `Scaffold`, aplicado ao contêiner rolável.
+        windowInsets = WindowInsets(0.dp),
         title = {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
