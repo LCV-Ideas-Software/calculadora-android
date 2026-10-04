@@ -22,10 +22,11 @@ android {
         // nativo, sem core library desugaring.
         minSdk = 34
         targetSdk = 37
-        // 1.0.1/code 3 publicado na trilha production (confirmado em 02/10/2026); a 1.0.2 leva o R8
-        // (CALANDR-26) e os campos de caixa (CALANDR-27).
-        versionCode = 4
-        versionName = "1.0.2"
+        // 1.0.2/code 4 publicado na trilha production (03/10/2026); a 1.0.3 leva o cabeçalho com o teclado
+        // aberto (CALANDR-31), o selo do cartão vencedor (CALANDR-32), a barra que rola com o conteúdo
+        // (CALANDR-35) e a aparência do selo, das pílulas e dos cartões de cenário (CALANDR-34).
+        versionCode = 5
+        versionName = "1.0.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

@@ -37,7 +37,7 @@ não substitui o build, assinatura e publicação do workflow.
 1. Entrar no [Google Play Console](https://play.google.com/console/) com a conta
    autorizada e selecionar **Calculadora**, pacote `dev.lcv.calculadora`.
 2. Abrir **Testar e lançar → Produção**. Conferir a versão desejada, o código,
-   notas em português e os países/regiões. Para a versão atual, o alvo é **1.0.2 (4)**.
+   notas em português e os países/regiões. Para a versão atual, o alvo é **1.0.3 (5)**.
    Não fazer novo upload se o workflow já enviou esse bundle.
 3. Abrir **Visão geral da publicação**. Examinar **Alterações ainda não enviadas
    para revisão** (o texto pode aparecer como alterações prontas para envio).
