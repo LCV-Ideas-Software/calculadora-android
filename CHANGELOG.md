@@ -23,15 +23,14 @@ All material changes to `calculadora-android` are recorded here.
   exchange quote only up to 24 hours old (`IDADE_MAXIMA_SPOT`) and falls back
   to the PTAX otherwise. With the market closed, both sources answer with
   Friday's quote. Measured on Sunday 04/10/2026: 41 and 28.5 hours old, and
-  the flow failed on `main` too. The test now applies the app's own rule to
-  the quote each source returns: a positive price, from the field the app
-  reads, and an instant at most 24 hours old over the whole interval in which
-  the app fetches it, from the start of the calculation to the reading of the
-  label. With such a quote, the PTAX fallback fails the flow. Without one, the
-  fallback is the app's correct choice, and the flow is reported as skipped,
-  since the AwesomeAPI and Yahoo paths were not exercised. By the operator's
-  decision, the flow judges in this direction only: the app refusing a stale
-  or future quote is covered by the `:core:data` unit tests.
+  the flow failed on `main` too. By the operator's decision, the flow no
+  longer judges the exchange quote; the app decides whether to accept it, and
+  that rule is covered by the `:core:data` unit tests. A live AwesomeAPI or
+  Yahoo label on the Conta Global proves the minified exchange path, and the
+  flow passes. A fallback (the last saved value or the PTAX fallback) does not
+  prove it, and the flow is reported as skipped. When the Central Bank answers
+  the test, the PTAX label stays required, and a Conta Global with no source
+  at all fails the flow.
 - `:teste-release` waits for an element by scrolling with UI Automator's
   `scrollUntil`. The app sends UI Automator no scroll event, so `scroll`
   reported the end at every step. The old search turned around at every
@@ -40,7 +39,7 @@ All material changes to `calculadora-android` are recorded here.
 - Each `:teste-release` flow opens the app a second time when the first
   launch does not show the form. After `pm clear` returns, the system can
   still kill the app launched right after it: in a CI run on 04/10/2026, the
-  app opened 0.8 s after `pm clear` was killed 0.3 s later, and the flow
+  app opened 0.8 s after `pm clear` and was killed 0.3 s later, and the flow
   failed with "o aplicativo não abriu". A launch counts only once the
   Calcular button is on screen, not when the package's window appears.
 
