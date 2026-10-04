@@ -14,11 +14,27 @@ name: Record a Play release on GitHub
 # o bundle, antes do rollout. O artefato nunca é o que atrasa; o que decide
 # quando gravar é a política de só gravar Release do que a loja entrega.
 #
+# A tag aponta para o commit que a Play recebeu, e quem diz qual é esse commit é
+# o run do `publish-play.yml` que enviou a versão, informado no disparo
+# (CALANDR-33). Antes a tag ia para `$GITHUB_SHA`, o commit em que este workflow
+# rodava, e a única trava comparava o `versionCode`. Só que `main` continua
+# recebendo merges depois de uma versão sem mudar o `versionCode`: medido em
+# 03/10/2026, a Play construiu a 1.0.2 em `826e519` e `main` já estava em
+# `f13f4a7`, ainda no código 4. Disparado em `main`, este workflow teria gravado
+# a tag em `f13f4a7`, um commit que a Play nunca construiu. Tag e Release são
+# imutáveis, então o commit vem do run de publicação, nunca do ref do disparo.
+#
 # Usa a mesma configuração do `publish-play.yml`: WIF, sem chave guardada.
 
 on:
   workflow_dispatch:
     inputs:
+      publish_run_id:
+        description: >-
+          ID do run de "Publish to Google Play" que enviou esta versão — o número
+          no fim da URL do run (…/actions/runs/<ID>)
+        required: true
+        type: string
       version_code:
         description: versionCode já publicado no Google Play
         required: true
@@ -36,13 +52,69 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
+      actions: read # Ler o run de publicação informado e conferir de onde ele veio.
       contents: write # Criar a tag, a Release e anexar os assets.
       id-token: write # Token OIDC: credenciais do Google e assinatura Sigstore.
       attestations: write # Guardar a attestation neste repositório.
     steps:
-      - name: Check out repository
+      - name: Identify the commit Google Play received
+        id: publish
+        # O run informado só serve se for do `publish-play.yml` deste
+        # repositório — conferido pelo caminho do arquivo, porque o nome exibido
+        # é texto livre — e se terminou com sucesso. Todo caminho bem-sucedido
+        # daquele workflow passa pelo envio do bundle e pela comparação de
+        # digest, e a Play recusa um `versionCode` repetido; então um run
+        # bem-sucedido prova que o bundle daquele código saiu do seu `head_sha`.
+        # A API não expõe os inputs do run (`track`, `release_status`): quem
+        # prova que a versão está em produção e publicada continuam sendo as
+        # consultas à Play, mais abaixo. Nada é escrito antes de tudo isso.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUBLISH_RUN_ID: ${{ inputs.publish_run_id }}
+          PUBLISH_WORKFLOW: .github/workflows/publish-play.yml
+        run: |
+          set -euo pipefail
+          # O ID entra no caminho da chamada à API, então só dígitos.
+          if ! [[ "$PUBLISH_RUN_ID" =~ ^[0-9]+$ ]]; then
+            echo "::error::publish_run_id deve ter só dígitos: o número no fim da URL do run de publicação." >&2
+            exit 1
+          fi
+          if ! run=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$PUBLISH_RUN_ID"); then
+            echo "::error::Não foi possível ler o run $PUBLISH_RUN_ID neste repositório." >&2
+            exit 1
+          fi
+          campo() { printf '%s' "$run" | jq -r "$1 // empty"; }
+          repo=$(campo .repository.full_name)
+          path=$(campo .path)
+          status=$(campo .status)
+          conclusion=$(campo .conclusion)
+          head_sha=$(campo .head_sha)
+          if [ "$repo" != "$GITHUB_REPOSITORY" ]; then
+            echo "::error::O run $PUBLISH_RUN_ID é do repositório '$repo', e não de $GITHUB_REPOSITORY." >&2
+            exit 1
+          fi
+          if [ "$path" != "$PUBLISH_WORKFLOW" ]; then
+            echo "::error::O run $PUBLISH_RUN_ID é do workflow '$path', e não de $PUBLISH_WORKFLOW." >&2
+            exit 1
+          fi
+          if [ "$status" != completed ]; then
+            echo "::error::O run $PUBLISH_RUN_ID ainda não terminou (status '$status')." >&2
+            exit 1
+          fi
+          if [ "$conclusion" != success ]; then
+            echo "::error::O run $PUBLISH_RUN_ID terminou com '$conclusion'; só um run bem-sucedido prova que a Play recebeu o bundle daquele commit." >&2
+            exit 1
+          fi
+          if ! [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::O run $PUBLISH_RUN_ID não informou um head_sha válido ('$head_sha')." >&2
+            exit 1
+          fi
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Check out the commit Google Play received
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ steps.publish.outputs.head_sha }}
           persist-credentials: false
 
       - name: Verify required configuration
@@ -64,13 +136,22 @@ jobs:
 
       - name: Derive the tag and check it against the sources
         id: version
-        # A tag vem do `versionName` do repositório, como no `publish-play.yml`.
-        # O `versionCode` do repositório tem de bater com o informado: gravar a
-        # Release de uma versão com o nome de outra seria pior que não gravar.
+        # A tag vem do `versionName` do commit que a Play recebeu, como no
+        # `publish-play.yml`. O checkout tem de estar nesse commit, e o
+        # `versionCode` dele tem de bater com o informado: é uma segunda prova,
+        # independente do ID do run, de que o run escolhido é o da versão
+        # pretendida. Gravar a Release de uma versão com o nome de outra seria
+        # pior que não gravar.
         env:
           VERSION_CODE: ${{ inputs.version_code }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
         run: |
           set -euo pipefail
+          checked_out=$(git rev-parse HEAD)
+          if [ "$checked_out" != "$HEAD_SHA" ]; then
+            echo "::error::O checkout está em $checked_out, e não no commit do run de publicação ($HEAD_SHA)."
+            exit 1
+          fi
           name=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
           code=$(grep -oP 'versionCode = \K[0-9]+' app/build.gradle.kts)
           if ! [[ "$name" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -78,12 +159,26 @@ jobs:
             exit 1
           fi
           if [ "$code" != "$VERSION_CODE" ]; then
-            echo "::error::O repositório está no versionCode $code e foi pedido o $VERSION_CODE. Faça checkout do commit da versão publicada."
+            echo "::error::O commit $HEAD_SHA do run de publicação está no versionCode $code e foi pedido o $VERSION_CODE. Confira o ID do run e o versionCode informados."
             exit 1
           fi
           IFS=. read -r major minor patch <<< "$name"
+          tag=$(printf 'v%02d.%02d.%02d' "$major" "$minor" "$patch")
+          # Uma versão já gravada é recusada aqui, antes da autenticação no Google
+          # e da attestation: um disparo repetido não pode deixar nada público. A
+          # mesma conferência se repete na criação, contra disparos simultâneos.
+          if git ls-remote --exit-code --tags "https://github.com/$GITHUB_REPOSITORY.git" "refs/tags/$tag" > /dev/null; then
+            echo "::error::A tag $tag já existe; esta versão já foi gravada."
+            exit 1
+          else
+            status=$?
+            if [ "$status" -ne 2 ]; then
+              echo "::error::Não foi possível verificar a existência da tag (git: $status)."
+              exit 1
+            fi
+          fi
           echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "tag=$(printf 'v%02d.%02d.%02d' "$major" "$minor" "$patch")" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud
         id: auth
@@ -197,6 +292,8 @@ jobs:
       - name: Create the Release
         # Rascunho primeiro, assets depois, publicar por último: é a ordem que
         # releases imutáveis exigem, porque nada se acrescenta a uma publicada.
+        # O alvo é o commit do run de publicação, e não `$GITHUB_SHA`: este
+        # workflow pode ser disparado em qualquer ref.
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
@@ -204,6 +301,8 @@ jobs:
           VERSION_CODE: ${{ inputs.version_code }}
           CERT: ${{ steps.apk.outputs.certificate }}
           PACKAGE: ${{ vars.PLAY_PACKAGE_NAME }}
+          HEAD_SHA: ${{ steps.publish.outputs.head_sha }}
+          PUBLISH_RUN_ID: ${{ inputs.publish_run_id }}
         run: |
           set -euo pipefail
           {
@@ -232,12 +331,13 @@ jobs:
               exit 1
             fi
           fi
-          gh release create "$TAG" --target "$GITHUB_SHA" --draft --title "$VERSION_NAME" --notes-file corpo.md
+          gh release create "$TAG" --target "$HEAD_SHA" --draft --title "$VERSION_NAME" --notes-file corpo.md
           gh release upload "$TAG" release/*.apk release/SHA256SUMS
           gh release edit "$TAG" --draft=false
           {
             echo "### Release \`$TAG\` gravada"
             echo ""
+            echo "- commit \`$HEAD_SHA\`, enviado à Play pelo run \`$PUBLISH_RUN_ID\`"
             echo "- APK universal assinado pela Play, certificado \`$CERT\`"
             echo "- \`SHA256SUMS\` e attestation de proveniência"
           } >> "$GITHUB_STEP_SUMMARY"
