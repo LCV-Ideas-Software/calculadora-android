@@ -19,7 +19,11 @@ import androidx.test.uiautomator.Until
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.time.Duration
+import java.time.Instant
 import java.util.regex.Pattern
+import org.json.JSONException
+import org.json.JSONObject
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -61,12 +65,21 @@ class AplicativoMinificadoTest {
      * mesmo com a cotação indisponível (revisão da #74). Por isso o teste sonda as fontes por conta própria: a
      * que responde obriga o aplicativo a mostrar a cotação dela, pelo rótulo da fonte, que só existe com a cotação
      * disponível. Sem fonte alguma, o teste confere que o aplicativo não caiu e se declara pulado, não verde.
+     *
+     * O câmbio só conta com cotação de até 24 h, a regra do próprio aplicativo (CALANDR-36): no fim de semana a
+     * fonte responde com a cotação de sexta, o aplicativo a recusa e a Conta Global vai para a PTAX de contingência.
+     * Sem câmbio vigente, o teste confere essa contingência e se declara pulado, porque a AwesomeAPI e o Yahoo não
+     * foram exercitados.
      */
     @Test
     fun aSimulacaoMostraACotacaoDeCadaFonteQueResponde() {
         val ptax = responde(OLINDA) || responde(CSV_BCB)
-        val cambio = responde(AWESOME) || responde(YAHOO)
-        Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio=$cambio")
+        val cambio = vigente(AWESOME) { it.getJSONObject("USDBRL").getLong("timestamp") } ||
+            vigente(YAHOO) {
+                it.getJSONObject("chart").getJSONArray("result").getJSONObject(0).getJSONObject("meta")
+                    .getLong("regularMarketTime")
+            }
+        Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio vigente=$cambio")
         preencherOValorECalcular()
         if (!ptax && !cambio) {
             assertNotNull("nem resultado nem aviso depois de calcular", esperarRolando(By.text(Pattern.compile("$CARTAO|$SEM_COTACAO")), ESPERA_REDE))
@@ -83,6 +96,19 @@ class AplicativoMinificadoTest {
             val fonte = esperarRolando(By.text(Pattern.compile("$FONTE_AWESOME|$FONTE_YAHOO")), ESPERA_REDE)
             assertNotNull("o câmbio respondeu ao teste, mas a Conta Global não mostrou a AwesomeAPI nem o Yahoo", fonte)
             Log.i(ROTULO, "a Conta Global usou: ${fonte!!.text}")
+        } else {
+            // Uma cotação que voltou a ser vigente entre a sonda e o cálculo também vale: o rótulo dela prova a rede.
+            val fonte = esperarRolando(
+                By.text(Pattern.compile("$FONTE_AWESOME|$FONTE_YAHOO|${Pattern.quote(FONTE_CONTINGENCIA)}")),
+                ESPERA_REDE,
+            )
+            assertNotNull("sem câmbio vigente, a Conta Global não mostrou a PTAX de contingência", fonte)
+            Log.i(ROTULO, "sem câmbio vigente, a Conta Global usou: ${fonte!!.text}")
+            assertTrue("o processo do aplicativo morreu", processoVivo())
+            assumeTrue(
+                "nenhuma fonte de câmbio tem cotação de até 24 h: a AwesomeAPI e o Yahoo não foram exercitados",
+                fonte.text != FONTE_CONTINGENCIA,
+            )
         }
         assertTrue("o processo do aplicativo morreu", processoVivo())
     }
@@ -156,20 +182,40 @@ class AplicativoMinificadoTest {
         return null
     }
 
-    /** A fonte responde ao próprio teste, pelos mesmos endereços que o aplicativo consulta. */
-    private fun responde(endereco: String): Boolean = try {
+    /** O corpo que a fonte devolve ao próprio teste, pelos mesmos endereços que o aplicativo consulta, ou `null`. */
+    private fun consultar(endereco: String): String? = try {
         val conexao = URL(endereco).openConnection() as HttpURLConnection
         conexao.connectTimeout = 15_000
         conexao.readTimeout = 15_000
         conexao.setRequestProperty("User-Agent", "calculadora-android-teste-release")
         try {
-            conexao.responseCode == HttpURLConnection.HTTP_OK
+            if (conexao.responseCode != HttpURLConnection.HTTP_OK) null
+            else conexao.inputStream.bufferedReader().use { it.readText() }
         } finally {
             conexao.disconnect()
         }
     } catch (erro: IOException) {
         Log.i(ROTULO, "a fonte $endereco não respondeu ao teste: $erro")
-        false
+        null
+    }
+
+    private fun responde(endereco: String): Boolean = consultar(endereco) != null
+
+    /**
+     * A fonte de câmbio responde ao teste com uma cotação de até [IDADE_MAXIMA_CAMBIO], como o aplicativo exige.
+     * [instante] lê do corpo o instante da cotação, em segundos desde a época.
+     */
+    private fun vigente(endereco: String, instante: (JSONObject) -> Long): Boolean {
+        val corpo = consultar(endereco) ?: return false
+        val quando = try {
+            Instant.ofEpochSecond(instante(JSONObject(corpo)))
+        } catch (erro: JSONException) {
+            Log.i(ROTULO, "a fonte $endereco respondeu sem o instante da cotação: $erro")
+            return false
+        }
+        val idade = Duration.between(quando, Instant.now())
+        Log.i(ROTULO, "a fonte $endereco respondeu com a cotação de $quando, com ${idade.toMinutes()} min")
+        return !idade.isNegative && idade <= IDADE_MAXIMA_CAMBIO
     }
 
     private fun processoVivo(): Boolean = aparelho.executeShellCommand("pidof $PACOTE").isNotBlank()
@@ -194,6 +240,10 @@ class AplicativoMinificadoTest {
         const val FONTE_PTAX = "PTAX do Banco Central"
         const val FONTE_AWESOME = "AwesomeAPI"
         const val FONTE_YAHOO = "Yahoo Finance"
+        const val FONTE_CONTINGENCIA = "PTAX (contingência)"
+
+        // A idade máxima da cotação de câmbio que o aplicativo aceita (`IDADE_MAXIMA_SPOT`, no `:core:data`).
+        val IDADE_MAXIMA_CAMBIO: Duration = Duration.ofHours(24)
 
         // Os mesmos endereços e caminhos de `Fontes.kt` (`:core:data`), com uma data já publicada.
         const val OLINDA = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/" +

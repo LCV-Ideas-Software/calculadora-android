@@ -17,6 +17,16 @@ All material changes to `calculadora-android` are recorded here.
 - The scroll loop of `tocarNoFormulario` in `:teste-release` no longer raises
   the "Expression is unused" compiler warning; it scrolls the same way, at
   most ten times.
+- The live-quote flow of `:teste-release` failed on weekends with the app
+  right (CALANDR-36). It required the Conta Global to show the AwesomeAPI or
+  Yahoo label whenever one of them answered HTTP 200, but the app accepts an
+  exchange quote only up to 24 hours old (`IDADE_MAXIMA_SPOT`) and falls back
+  to the PTAX otherwise. With the market closed, both sources answer with
+  Friday's quote. Measured on Sunday 04/10/2026: 41 and 28.5 hours old, and
+  the flow failed on `main` too. The test now applies the same 24-hour rule
+  to the quote each source returns. Without a current exchange quote, it
+  checks that the Conta Global shows "PTAX (contingência)" and reports the
+  flow as skipped, since the AwesomeAPI and Yahoo paths were not exercised.
 
 ### Fixed
 
