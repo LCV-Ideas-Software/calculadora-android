@@ -23,10 +23,26 @@ All material changes to `calculadora-android` are recorded here.
   exchange quote only up to 24 hours old (`IDADE_MAXIMA_SPOT`) and falls back
   to the PTAX otherwise. With the market closed, both sources answer with
   Friday's quote. Measured on Sunday 04/10/2026: 41 and 28.5 hours old, and
-  the flow failed on `main` too. The test now applies the same 24-hour rule
-  to the quote each source returns. Without a current exchange quote, it
-  checks that the Conta Global shows "PTAX (contingência)" and reports the
-  flow as skipped, since the AwesomeAPI and Yahoo paths were not exercised.
+  the flow failed on `main` too. The test now applies the same 24-hour rule,
+  judged over the interval in which the app fetches the quote: it probes the
+  sources before and after the calculation. A quote that was current before
+  and still is at the end must not end in the PTAX fallback. A source whose
+  quote at the second probe, the newest the app could have received, was
+  already stale at the start must not show its label. In between, either
+  outcome is the app's correct choice. The flow is reported as skipped when
+  the fallback is shown, since the AwesomeAPI and Yahoo paths were not
+  exercised, and when the source of the label, not certainly current, does
+  not answer the second probe, since the label cannot be judged.
+- `:teste-release` waits for an element by scrolling with UI Automator's
+  `scrollUntil`. The app sends UI Automator no scroll event, so `scroll`
+  reported the end at every step. The old search turned around at every
+  reported end and swung half a screen down and up without reaching the
+  Conta Global card (measured on 04/10/2026).
+- Each `:teste-release` flow opens the app a second time when the first
+  launch does not show it. After `pm clear` returns, the system can still
+  kill the app launched right after it: in a CI run on 04/10/2026, the app
+  opened 0.8 s after `pm clear` was killed 0.3 s later, and the flow failed
+  with "o aplicativo não abriu".
 
 ### Fixed
 

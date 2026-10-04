@@ -24,6 +24,7 @@ import java.time.Instant
 import java.util.regex.Pattern
 import org.json.JSONException
 import org.json.JSONObject
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -54,8 +55,14 @@ class AplicativoMinificadoTest {
         val intencao = instrumentacao.context.packageManager.getLaunchIntentForPackage(PACOTE)
         assertNotNull("o aplicativo $PACOTE não está instalado", intencao)
         intencao!!.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-        instrumentacao.context.startActivity(intencao)
-        assertTrue("o aplicativo não abriu", aparelho.wait(Until.hasObject(By.pkg(PACOTE).depth(0)), ESPERA))
+        // Depois que o `pm clear` volta, o sistema ainda pode matar o aplicativo aberto logo em seguida (CI da #97, em
+        // 04/10/2026: aberto 0,8 s depois do `pm clear` e morto 0,3 s mais tarde). Por isso há uma segunda abertura; o
+        // fluxo só cai se nem ela abrir.
+        val abriu = (1..2).any {
+            instrumentacao.context.startActivity(intencao)
+            aparelho.wait(Until.hasObject(By.pkg(PACOTE).depth(0)), ESPERA)
+        }
+        assertTrue("o aplicativo não abriu", abriu)
         achar(By.text(CALCULAR))
     }
 
@@ -68,18 +75,23 @@ class AplicativoMinificadoTest {
      *
      * O câmbio só conta com cotação de até 24 h, a regra do próprio aplicativo (CALANDR-36): no fim de semana a
      * fonte responde com a cotação de sexta, o aplicativo a recusa e a Conta Global vai para a PTAX de contingência.
-     * Sem câmbio vigente, o teste confere essa contingência e se declara pulado, porque a AwesomeAPI e o Yahoo não
-     * foram exercitados.
+     * O aplicativo decide no momento em que busca a cotação, em algum instante entre o começo do cálculo e a leitura
+     * do rótulo; por isso o teste sonda o câmbio antes e depois do cálculo e julga a cotação nesse intervalo:
+     * - vigente com certeza: a que já existia antes ainda vale no fim. A contingência é então um erro;
+     * - vencida com certeza: nem a da sonda de depois, a mais nova que o aplicativo pode ter recebido, valia no
+     *   começo. O rótulo dessa fonte é então um erro;
+     * - entre as duas, o aplicativo pode ter decidido para qualquer lado, e os dois resultados valem.
+     * Com a contingência, o teste se declara pulado, porque a AwesomeAPI e o Yahoo não foram exercitados. Também se
+     * declara pulado quando a fonte do rótulo não responde à sonda de depois e não era vigente com certeza: sem essa
+     * sonda, não há como julgar o rótulo.
      */
     @Test
     fun aSimulacaoMostraACotacaoDeCadaFonteQueResponde() {
         val ptax = responde(OLINDA) || responde(CSV_BCB)
-        val cambio = vigente(AWESOME) { it.getJSONObject("USDBRL").getLong("timestamp") } ||
-            vigente(YAHOO) {
-                it.getJSONObject("chart").getJSONArray("result").getJSONObject(0).getJSONObject("meta")
-                    .getLong("regularMarketTime")
-            }
-        Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio vigente=$cambio")
+        val antes = FONTES_CAMBIO.associateWith(::instanteDaCotacao)
+        val cambio = antes.values.any { it != null }
+        Log.i(ROTULO, "fontes que responderam ao teste: PTAX=$ptax, câmbio=$antes")
+        val inicio = Instant.now()
         preencherOValorECalcular()
         if (!ptax && !cambio) {
             assertNotNull("nem resultado nem aviso depois de calcular", esperarRolando(By.text(Pattern.compile("$CARTAO|$SEM_COTACAO")), ESPERA_REDE))
@@ -93,22 +105,32 @@ class AplicativoMinificadoTest {
             )
         }
         if (cambio) {
-            val fonte = esperarRolando(By.text(Pattern.compile("$FONTE_AWESOME|$FONTE_YAHOO")), ESPERA_REDE)
-            assertNotNull("o câmbio respondeu ao teste, mas a Conta Global não mostrou a AwesomeAPI nem o Yahoo", fonte)
-            Log.i(ROTULO, "a Conta Global usou: ${fonte!!.text}")
-        } else {
-            // Uma cotação que voltou a ser vigente entre a sonda e o cálculo também vale: o rótulo dela prova a rede.
-            val fonte = esperarRolando(
-                By.text(Pattern.compile("$FONTE_AWESOME|$FONTE_YAHOO|${Pattern.quote(FONTE_CONTINGENCIA)}")),
-                ESPERA_REDE,
-            )
-            assertNotNull("sem câmbio vigente, a Conta Global não mostrou a PTAX de contingência", fonte)
-            Log.i(ROTULO, "sem câmbio vigente, a Conta Global usou: ${fonte!!.text}")
-            assertTrue("o processo do aplicativo morreu", processoVivo())
-            assumeTrue(
-                "nenhuma fonte de câmbio tem cotação de até 24 h: a AwesomeAPI e o Yahoo não foram exercitados",
-                fonte.text != FONTE_CONTINGENCIA,
-            )
+            val rotulos = FONTES_CAMBIO.joinToString("|") { it.rotulo } + "|" + Pattern.quote(FONTE_CONTINGENCIA)
+            val mostrada = esperarRolando(By.text(Pattern.compile(rotulos)), ESPERA_REDE)?.text
+            val fim = Instant.now()
+            assertNotNull("o câmbio respondeu ao teste, mas a Conta Global não mostrou fonte alguma", mostrada)
+            // Só a sonda de depois limita a cotação que o aplicativo recebeu: a fonte pode ter publicado outra depois
+            // da sonda de antes.
+            val depois = FONTES_CAMBIO.associateWith(::instanteDaCotacao)
+            val limiteNoFim = fim.minus(IDADE_MAXIMA_CAMBIO)
+            val limiteNoInicio = inicio.minus(IDADE_MAXIMA_CAMBIO)
+            // Como no aplicativo, a cotação com instante no futuro também não vale (idade negativa).
+            val vigentes = FONTES_CAMBIO.filter { f ->
+                antes[f]?.let { !it.isBefore(limiteNoFim) && !it.isAfter(inicio) } == true
+            }
+            val vencidas = FONTES_CAMBIO.filter { f -> depois[f]?.let { it.isBefore(limiteNoInicio) } == true }
+            Log.i(ROTULO, "a Conta Global usou: $mostrada; depois: $depois; vigentes: $vigentes; vencidas: $vencidas")
+            if (mostrada == FONTE_CONTINGENCIA) {
+                assertTrue("a Conta Global foi para a contingência com cotação vigente: $vigentes", vigentes.isEmpty())
+                assertTrue("o processo do aplicativo morreu", processoVivo())
+                assumeTrue("sem cotação de câmbio vigente: a AwesomeAPI e o Yahoo não foram exercitados", false)
+            }
+            val usada = FONTES_CAMBIO.first { it.rotulo == mostrada }
+            assertFalse("a Conta Global mostrou $usada com a cotação vencida de ${depois[usada]}", usada in vencidas)
+            if (usada !in vigentes && depois[usada] == null) {
+                assertTrue("o processo do aplicativo morreu", processoVivo())
+                assumeTrue("a fonte $usada não respondeu à sonda de depois: a vigência do rótulo não foi julgada", false)
+            }
         }
         assertTrue("o processo do aplicativo morreu", processoVivo())
     }
@@ -167,16 +189,19 @@ class AplicativoMinificadoTest {
     }
 
     /**
-     * Espera o elemento rolando a tela, porque o UI Automator só vê o que está nela: desce até o fim e volta, até
-     * o prazo, já que a ordem dos cartões depende de qual sai mais barato.
+     * Espera o elemento rolando a tela, porque o UI Automator só vê o que está nela: desce e sobe até o prazo, com a
+     * rolagem do próprio UI Automator (`scrollUntil`), que para ao achar o elemento. Neste aplicativo o UI Automator
+     * não recebe o evento de rolagem, e sem ele `scroll` responde "fim" a cada passo: a busca antiga, que trocava de
+     * sentido a cada "fim", oscilava meia tela para baixo e para cima e não chegava ao cartão da Conta Global (medido
+     * em 04/10/2026). Sem o evento, `scrollUntil` ainda rola cinco vezes antes de desistir.
      */
     private fun esperarRolando(seletor: BySelector, espera: Long): UiObject2? {
         val limite = SystemClock.uptimeMillis() + espera
         var sentido = Direction.DOWN
         while (SystemClock.uptimeMillis() < limite) {
             aparelho.findObject(seletor)?.let { return it }
-            val rolou = aparelho.findObject(By.scrollable(true))?.scroll(sentido, 0.5f) ?: false
-            if (!rolou) sentido = if (sentido == Direction.DOWN) Direction.UP else Direction.DOWN
+            aparelho.findObject(By.scrollable(true))?.scrollUntil(sentido, Until.findObject(seletor))?.let { return it }
+            sentido = if (sentido == Direction.DOWN) Direction.UP else Direction.DOWN
             SystemClock.sleep(500)
         }
         return null
@@ -201,21 +226,20 @@ class AplicativoMinificadoTest {
 
     private fun responde(endereco: String): Boolean = consultar(endereco) != null
 
-    /**
-     * A fonte de câmbio responde ao teste com uma cotação de até [IDADE_MAXIMA_CAMBIO], como o aplicativo exige.
-     * [instante] lê do corpo o instante da cotação, em segundos desde a época.
-     */
-    private fun vigente(endereco: String, instante: (JSONObject) -> Long): Boolean {
-        val corpo = consultar(endereco) ?: return false
-        val quando = try {
-            Instant.ofEpochSecond(instante(JSONObject(corpo)))
+    /** O instante da cotação que a fonte de câmbio devolve agora ao teste, ou `null` se ela não responde com ele. */
+    private fun instanteDaCotacao(fonte: FonteCambio): Instant? {
+        val corpo = consultar(fonte.endereco) ?: return null
+        return try {
+            Instant.ofEpochSecond(fonte.instante(JSONObject(corpo)))
         } catch (erro: JSONException) {
-            Log.i(ROTULO, "a fonte $endereco respondeu sem o instante da cotação: $erro")
-            return false
+            Log.i(ROTULO, "a fonte ${fonte.endereco} respondeu sem o instante da cotação: $erro")
+            null
         }
-        val idade = Duration.between(quando, Instant.now())
-        Log.i(ROTULO, "a fonte $endereco respondeu com a cotação de $quando, com ${idade.toMinutes()} min")
-        return !idade.isNegative && idade <= IDADE_MAXIMA_CAMBIO
+    }
+
+    /** Uma fonte de câmbio: o endereço que o aplicativo consulta, o rótulo na tela e onde o corpo traz o instante. */
+    private class FonteCambio(val endereco: String, val rotulo: String, val instante: (JSONObject) -> Long) {
+        override fun toString() = rotulo
     }
 
     private fun processoVivo(): Boolean = aparelho.executeShellCommand("pidof $PACOTE").isNotBlank()
@@ -244,6 +268,15 @@ class AplicativoMinificadoTest {
 
         // A idade máxima da cotação de câmbio que o aplicativo aceita (`IDADE_MAXIMA_SPOT`, no `:core:data`).
         val IDADE_MAXIMA_CAMBIO: Duration = Duration.ofHours(24)
+
+        // Na ordem em que o aplicativo as consulta (`ProvedorSpotWeb`), com o instante da cotação, em segundos.
+        val FONTES_CAMBIO = listOf(
+            FonteCambio(AWESOME, FONTE_AWESOME) { it.getJSONObject("USDBRL").getLong("timestamp") },
+            FonteCambio(YAHOO, FONTE_YAHOO) {
+                it.getJSONObject("chart").getJSONArray("result").getJSONObject(0).getJSONObject("meta")
+                    .getLong("regularMarketTime")
+            },
+        )
 
         // Os mesmos endereços e caminhos de `Fontes.kt` (`:core:data`), com uma data já publicada.
         const val OLINDA = "https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/" +
