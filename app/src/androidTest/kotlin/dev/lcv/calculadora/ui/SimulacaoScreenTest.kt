@@ -968,8 +968,10 @@ class SimulacaoScreenTest {
     @Test
     fun umGestoQueComecaNoCabecalhoRolaAPagina() {
         // O `TopAppBar` do Material 3 traz um `pointerInput` próprio; um gesto que começa em cima dele ainda tem de
-        // rolar a página, como no web.
+        // rolar a página, como no web. A pré-condição prova que o cabeçalho existe: sem ela, a asserção final também
+        // passaria se a marca sumisse.
         montarNoAparelho(TELA_ESTREITA_FONTE_MAXIMA)
+        assertInteiro(tituloDoCabecalho(), "o título do cabeçalho")
         compose.onNodeWithTag(Marcas.CABECALHO).performTouchInput { swipeUp() }
         tituloDoCabecalho().assertIsNotDisplayed()
     }
