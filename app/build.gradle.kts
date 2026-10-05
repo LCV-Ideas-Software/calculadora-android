@@ -18,9 +18,11 @@ android {
 
     defaultConfig {
         applicationId = "dev.lcv.calculadora"
-        // Android 14 (decisão do operador, 19/09/2026): o `java.time` do motor é
-        // nativo, sem core library desugaring.
-        minSdk = 34
+        // Android 16: nenhum aplicativo *-android abaixo dele (decisão do operador,
+        // 04/10/2026, que superou a de 19/09/2026, Android 14). Nasceu das duas
+        // recomendações do Play Console sobre a exibição de ponta a ponta. O
+        // `java.time` do motor segue nativo, sem core library desugaring.
+        minSdk = 36
         targetSdk = 37
         // 1.0.2/code 4 publicado na trilha production (03/10/2026); a 1.0.3 leva o cabeçalho com o teclado
         // aberto (CALANDR-31), o selo do cartão vencedor (CALANDR-32), a barra que rola com o conteúdo
@@ -47,9 +49,9 @@ android {
     testOptions {
         managedDevices {
             localDevices {
-                create("pixel2api34") {
+                create("pixel2api36") {
                     device = "Pixel 2"
-                    apiLevel = 34
+                    apiLevel = 36
                     systemImageSource = "aosp"
                 }
             }

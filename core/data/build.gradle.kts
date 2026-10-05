@@ -16,8 +16,8 @@ android {
     compileSdkMinor = 2
 
     defaultConfig {
-        // Mesmo mínimo do `:app` (Android 14, decisão do operador de 19/09/2026).
-        minSdk = 34
+        // Mesmo mínimo do `:app` (Android 16, decisão do operador de 04/10/2026).
+        minSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -31,9 +31,9 @@ android {
     testOptions {
         managedDevices {
             localDevices {
-                create("pixel2api34") {
+                create("pixel2api36") {
                     device = "Pixel 2"
-                    apiLevel = 34
+                    apiLevel = 36
                     systemImageSource = "aosp"
                 }
             }

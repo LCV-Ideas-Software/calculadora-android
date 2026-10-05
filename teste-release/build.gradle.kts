@@ -15,7 +15,7 @@ android {
     compileSdkMinor = 2
 
     defaultConfig {
-        minSdk = 34
+        minSdk = 36
         targetSdk = 37
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -42,9 +42,9 @@ android {
         managedDevices {
             localDevices {
                 // O mesmo aparelho do `:app`, para a CI reaproveitar a imagem já baixada.
-                create("pixel2api34") {
+                create("pixel2api36") {
                     device = "Pixel 2"
-                    apiLevel = 34
+                    apiLevel = 36
                     systemImageSource = "aosp"
                 }
             }

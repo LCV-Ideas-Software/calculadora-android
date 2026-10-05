@@ -10,8 +10,8 @@ LCV Ideas & Software.
 O repositório já contém o projeto Gradle e a esteira de publicação na Play,
 introduzidos em 17/09/2026 pela [CALANDR-8](https://linear.app/lcv-ideas-software/issue/CALANDR-8):
 Gradle 9.7.1 com a distribuição fixada por checksum, Android Gradle Plugin
-9.4.x, `compileSdk` e `targetSdk` 37 (Android 17), `minSdk` 34 (Android 14,
-decisão do operador de 19/09/2026) e o package name `dev.lcv.calculadora`. Não há assinatura no repositório — o material de
+9.4.x, `compileSdk` e `targetSdk` 37 (Android 17), `minSdk` 36 (Android 16,
+decisão do operador de 04/10/2026) e o package name `dev.lcv.calculadora`. Não há assinatura no repositório — o material de
 assinatura é injetado em tempo de build pelo fluxo de publicação.
 
 A versão 1.0.1 corrige a auditoria pós-porte: [contratos e evidências](docs/correcoes-v1.0.1.md).
@@ -21,7 +21,7 @@ da barra de status com o teclado aberto, faz a barra superior rolar com o conte�
 o selo do cartão vencedor numa linha só, com fonte grande ou tela estreita, e dá ao selo, às pílulas e aos cartões
 de cenário as cores e os tamanhos do site.
 O fluxo de [publicação e revisão na Google Play](docs/publicacao-play.md) distingue
-envio, análise e distribuição efetiva. A CI também testa Room/Compose na API mínima 34.
+envio, análise e distribuição efetiva. A CI também testa Room/Compose na API mínima 36.
 
 O desenvolvimento do port nativo está especificado em
 [`docs/especificacao-v1.md`](docs/especificacao-v1.md) e começou pelo motor de
