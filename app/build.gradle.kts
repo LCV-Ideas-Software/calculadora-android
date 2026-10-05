@@ -24,11 +24,10 @@ android {
         // `java.time` do motor segue nativo, sem core library desugaring.
         minSdk = 36
         targetSdk = 37
-        // 1.0.2/code 4 publicado na trilha production (03/10/2026); a 1.0.3 leva o cabeçalho com o teclado
-        // aberto (CALANDR-31), o selo do cartão vencedor (CALANDR-32), a barra que rola com o conteúdo
-        // (CALANDR-35) e a aparência do selo, das pílulas e dos cartões de cenário (CALANDR-34).
-        versionCode = 5
-        versionName = "1.0.3"
+        // 1.0.3/code 5 publicado na trilha production (04/10/2026); a 1.0.4 leva o mínimo do Android 16
+        // (`minSdk` 36, CALANDR-38).
+        versionCode = 6
+        versionName = "1.0.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

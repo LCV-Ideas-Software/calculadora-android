@@ -1,7 +1,1 @@
-Com o teclado aberto, o cabeçalho do aplicativo não fica mais por baixo da barra de status.
-
-Com fonte grande, a barra do topo rola com a tela e volta no topo, como no site.
-
-O selo "MELHOR" do cartão vencedor fica no canto, numa linha só, mesmo com fonte grande ou tela estreita. Valores, botões e indicadores não são mais partidos no meio da palavra.
-
-O selo, as pílulas e os cartões de cenário ganharam as cores e os tamanhos do site, e a indicação da melhor opção ficou maior e mais legível.
+Esta versão passa a exigir o Android 16 ou mais recente. O uso do aplicativo não muda.
