@@ -4,6 +4,8 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+## [1.0.4] — 04/10/2026
+
 ### Changed
 
 - The minimum Android version is now Android 16 (`minSdk` 36); it was
