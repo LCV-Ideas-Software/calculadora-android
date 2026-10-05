@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
 /**
  * O SQL real dos DAOs num banco em memória do aparelho: o que os testes na
  * JVM não provam (lá os DAOs são falsos). Executado no AVD local antes da PR;
- * a CI não tem emulador.
+ * a CI também o executa no aparelho gerenciado.
  */
 @RunWith(AndroidJUnit4::class)
 class CalculadoraDatabaseTest {

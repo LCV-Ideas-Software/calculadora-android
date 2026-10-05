@@ -4,6 +4,24 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- The minimum Android version is now Android 16 (`minSdk` 36); it was
+  Android 14 (CALANDR-38). On 04/10/2026 the operator decided that no
+  `*-android` app supports anything below it. The decision came from two
+  recommendations of the Play Console on 1.0.3: edge-to-edge "may not display
+  for all users", and the app "uses deprecated APIs or parameters for
+  edge-to-edge" (`Window.setStatusBarColor`, `Window.setNavigationBarColor`
+  and `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`). The app's own code uses
+  none of them; it calls AndroidX Activity's `enableEdgeToEdge()`, which uses
+  them, and even its implementation for Android 15 and later calls the two
+  `Window` setters. The new minimum does not take them out of the app:
+  measured on the R8 release build, the same references remain, because that
+  implementation extends the older ones. New versions no longer install on
+  Android 15 or older, where devices keep the version they have.
+- The managed test device of `:core:data`, `:app` and `:teste-release` is now
+  a Pixel 2 with API 36 (`pixel2api36`), the new minimum.
+
 ## [1.0.3] — 04/10/2026
 
 ### Changed

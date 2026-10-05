@@ -336,7 +336,7 @@ com a chave de depuração) e o percorre de fora do processo dele com o UI
 Automator, que é o caminho oficial para testar o build otimizado: a abertura
 (o grafo do Hilt), a simulação com cotação ao vivo (Retrofit, OkHttp e JSON), o
 modo cobrado em reais e a tela de licenças (os `assets`). Roda na CI, no mesmo
-Pixel 2 com API 34 dos outros testes de aparelho.
+Pixel 2 com API 36 dos outros testes de aparelho.
 
 O aplicativo mostra o mesmo aviso de cotações indisponíveis para a fonte fora do
 ar e para uma falha dele, e o título do cartão aparece mesmo sem cotação. Por

@@ -1281,7 +1281,7 @@ class SimulacaoScreenTest {
 }
 
 /**
- * Os aparelhos simulados. A fonte vai até 200% no Android 14, e o override de teste passa pela mesma curva não linear
+ * Os aparelhos simulados. A fonte vai até 200% desde o Android 14, e o override de teste passa pela mesma curva não linear
  * do aparelho: o `Density` que ele monta converte sp pela `FontScaling` do Compose. 360 dp é a largura dos telefones
  * estreitos comuns e 411 dp a do Pixel 2 do aparelho gerenciado.
  */
