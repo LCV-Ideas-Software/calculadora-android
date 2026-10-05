@@ -87,13 +87,20 @@ jobs:
       # `:teste-release` drives the R8-minified build (`minificado`) from outside
       # its process with UI Automator: the debug tests above use fakes and
       # cannot catch what R8 breaks at run time (CALANDR-26).
+      # `--max-workers=1`: each module starts its own managed emulator, and two at
+      # once compete for the runner; locally, the second one times out. After the
+      # API 36 image came in, the `:app` tests failed on both pushes to `main`,
+      # with `:core:data` and `:app` starting in the same second. maestro-android
+      # runs one at a time for the same reason (CALANDR-41). `--continue` still
+      # runs the other modules after one fails, so the reports kept below cover
+      # all three.
       - name: Instrumented tests on Android 16
         id: instrumented
         run: >-
           ./gradlew :core:data:pixel2api36DebugAndroidTest :app:pixel2api36DebugAndroidTest
           :teste-release:pixel2api36MinificadoAndroidTest
           -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
-          --no-daemon --stacktrace
+          --max-workers=1 --continue --no-daemon --stacktrace
 
       # Gradle does not fail on a skipped test, so this check is green whether the
       # live-quote flow ran or was skipped, and the job log carries no logcat. The
@@ -109,4 +116,16 @@ jobs:
           path: |
             teste-release/build/outputs/androidTest-results/managedDevice/
             teste-release/build/reports/androidTests/managedDevice/
+          if-no-files-found: error
+
+      # The `:core:data` and `:app` results too, failed runs included: the job
+      # log only says that a module failed, not which test (CALANDR-41).
+      - name: Keep the instrumented test results
+        if: ${{ !cancelled() && steps.instrumented.outcome != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: instrumented-test-results
+          path: |
+            core/data/build/outputs/androidTest-results/managedDevice/
+            app/build/outputs/androidTest-results/managedDevice/
           if-no-files-found: error

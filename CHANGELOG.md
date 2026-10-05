@@ -4,6 +4,18 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Fixed
+
+- CI runs the instrumented tests one managed emulator at a time
+  (`--max-workers=1`, as maestro-android does) and keeps going after a module
+  fails (`--continue`) (CALANDR-41). After the move to the API 36 image
+  (CALANDR-38), the `:app` tests failed on the two pushes to `main`, where
+  `:core:data` and `:app` started their emulators in the same second on one
+  runner; locally, two managed emulators of the same AVD at once make the
+  second one time out. The run now also keeps the `:core:data` and `:app`
+  results, failed runs included, so a failure names the test: the job log only
+  says which module failed.
+
 ## [1.0.4] — 04/10/2026
 
 ### Changed
