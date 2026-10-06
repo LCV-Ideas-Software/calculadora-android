@@ -51,7 +51,7 @@ dependencies remain defined by those pinned upstream actions.
 | `actions/configure-pages`          | v6.0.0  | `45bfe0192ca1faeb007ade9deae92b16b8254a0d` | [MIT](https://github.com/actions/configure-pages/blob/45bfe0192ca1faeb007ade9deae92b16b8254a0d/LICENSE)          | Configure the Pages build                                         |
 | `actions/upload-pages-artifact`    | v5.0.0  | `fc324d3547104276b827a68afc52ff2a11cc49c9` | [MIT](https://github.com/actions/upload-pages-artifact/blob/fc324d3547104276b827a68afc52ff2a11cc49c9/LICENSE)    | Upload the sanitized `site/` artifact                             |
 | `actions/deploy-pages`             | v5.0.1  | `368f82528645a54fb793d4d04e342629a3f51346` | [MIT](https://github.com/actions/deploy-pages/blob/368f82528645a54fb793d4d04e342629a3f51346/LICENSE)             | Deploy the trusted Pages artifact                                 |
-| `linear/linear-release-action`     | v0.18.0 | `d4af10092984f9bc6d5efa075b242bdf01333463` | [MIT](https://github.com/linear/linear-release-action/blob/d4af10092984f9bc6d5efa075b242bdf01333463/LICENSE)     | Create a release in the corresponding Linear pipeline             |
+| `linear/linear-release-action`     | v0.18.1 | `30f9ae77461ec29f07fffe0c52edd1909bfbb6f5` | [MIT](https://github.com/linear/linear-release-action/blob/30f9ae77461ec29f07fffe0c52edd1909bfbb6f5/LICENSE)     | Create a release in the corresponding Linear pipeline             |
 
 `gradle/actions` declares itself "primarily licensed under the MIT License", and its
 own `LICENSE` states that the repository also carries a vendored component,

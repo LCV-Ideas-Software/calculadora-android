@@ -4,6 +4,12 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+### Changed
+
+- Update the official Linear Release Action to v0.18.1 at its full commit SHA,
+  select the official CLI v0.18.0 explicitly and retain upstream checksum
+  verification (LCV-316).
+
 ### Fixed
 
 - CI runs the instrumented tests one managed emulator at a time
