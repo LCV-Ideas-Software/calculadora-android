@@ -4,11 +4,13 @@
  */
 package dev.lcv.calculadora.ui
 
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -37,6 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -154,9 +159,19 @@ private fun BarraSuperior(emLicencas: Boolean, aoAlternar: () -> Unit) {
     )
 }
 
-/** O aviso de compliance que o rodapé do web carrega, palavra por palavra. */
+/** A política de privacidade dos aplicativos Android da LCV Ideas & Software, a mesma da ficha da Play. */
+internal const val URL_DA_POLITICA: String = "https://www.lcv.dev/privacy/"
+
+/**
+ * O aviso de compliance que o rodapé do web carrega, palavra por palavra, e o link da política de privacidade: a
+ * política de Dados do Usuário do Google Play exige o link também dentro do aplicativo, e o rodapé aparece na
+ * simulação e nas licenças (CALANDR-42, decisão do operador de 07/10/2026). Sem navegador, o aviso dá o endereço.
+ */
 @Composable
 private fun Rodape() {
+    val abrir = LocalUriHandler.current
+    val contexto = LocalContext.current
+    val recursos = LocalResources.current
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -169,5 +184,27 @@ private fun Rodape() {
             color = Tema.cores.textoApagado,
             textAlign = TextAlign.Justify,
         )
+        TextButton(
+            onClick = {
+                try {
+                    abrir.openUri(URL_DA_POLITICA)
+                } catch (_: IllegalArgumentException) {
+                    // O `UriHandler` do Android converte a falta de navegador (`ActivityNotFoundException`) nisto.
+                    Toast.makeText(
+                        contexto,
+                        recursos.getString(R.string.privacidade_sem_navegador, URL_DA_POLITICA),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            },
+            contentPadding = PaddingValues(0.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.acao_privacidade),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Tema.cores.textoFraco,
+            )
+        }
     }
 }

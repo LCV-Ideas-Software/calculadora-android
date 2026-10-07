@@ -4,10 +4,21 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
-- Update the official `actions/upload-artifact` to v7.0.2 and `actions/download-artifact` to v8.0.2 at complete commit SHAs (LCV-334).
+## [1.0.5] — 07/10/2026
+
+### Added
+
+- Privacy policy link in the footer, below the compliance notice, on both the
+  simulation and the licenses screens (CALANDR-42). Google Play's User Data
+  policy requires "a privacy policy link or text within the app itself", and
+  the app had neither. The link opens https://www.lcv.dev/privacy/ in the system
+  browser; without a browser, a notice gives the address. On 07/10/2026 the
+  operator chose the footer, where the disclaimer is, because the app has no
+  "About" screen.
 
 ### Changed
 
+- Update the official `actions/upload-artifact` to v7.0.2 and `actions/download-artifact` to v8.0.2 at complete commit SHAs (LCV-334).
 - Update the official Linear Release Action to v0.18.1 at its full commit SHA,
   select the official CLI v0.18.0 explicitly and retain upstream checksum
   verification (LCV-316).

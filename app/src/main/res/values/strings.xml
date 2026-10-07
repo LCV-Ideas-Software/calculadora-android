@@ -21,6 +21,9 @@
     <string name="marca_descricao">LCV Ideas &amp; Software</string>
 
     <string name="acao_licencas">Licenças</string>
+    <!-- Política de Dados do Usuário do Google Play: o link da política de privacidade fica também dentro do aplicativo, no rodapé (CALANDR-42). -->
+    <string name="acao_privacidade">Política de privacidade</string>
+    <string name="privacidade_sem_navegador">Não foi possível abrir o navegador. A política de privacidade está em %1$s</string>
     <string name="acao_voltar">Voltar</string>
     <string name="acao_calcular">Calcular</string>
     <string name="acao_compartilhar">Compartilhar</string>
