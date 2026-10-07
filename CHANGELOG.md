@@ -4,6 +4,8 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+- Update the official `actions/upload-artifact` to v7.0.2 and `actions/download-artifact` to v8.0.2 at complete commit SHAs (LCV-334).
+
 ### Changed
 
 - Update the official Linear Release Action to v0.18.1 at its full commit SHA,

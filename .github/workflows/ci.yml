@@ -110,7 +110,7 @@ jobs:
       # alternative to `always()` for running regardless of the outcome.
       - name: Keep the minified-build test report
         if: ${{ !cancelled() && steps.instrumented.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: teste-release-report
           path: |
@@ -122,7 +122,7 @@ jobs:
       # log only says that a module failed, not which test (CALANDR-41).
       - name: Keep the instrumented test results
         if: ${{ !cancelled() && steps.instrumented.outcome != 'skipped' }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: instrumented-test-results
           path: |
