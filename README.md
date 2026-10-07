@@ -19,7 +19,8 @@ A 1.0.2 traz os campos numéricos que formatam a entrada no padrão brasileiro e
 publicado otimizado pelo R8 (veja o [CHANGELOG](CHANGELOG.md)). A 1.0.3 corrige o cabeçalho, que ficava por baixo
 da barra de status com o teclado aberto, faz a barra superior rolar com o conteúdo, como o cabeçalho do site, mantém
 o selo do cartão vencedor numa linha só, com fonte grande ou tela estreita, e dá ao selo, às pílulas e aos cartões
-de cenário as cores e os tamanhos do site. A 1.0.4 passa a exigir o Android 16 (`minSdk` 36).
+de cenário as cores e os tamanhos do site. A 1.0.4 passa a exigir o Android 16 (`minSdk` 36). A 1.0.5 traz o link
+da política de privacidade no rodapé.
 O fluxo de [publicação e revisão na Google Play](docs/publicacao-play.md) distingue
 envio, análise e distribuição efetiva. A CI também testa Room/Compose na API mínima 36.
 

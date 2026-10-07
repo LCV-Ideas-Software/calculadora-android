@@ -1,1 +1,1 @@
-Esta versão passa a exigir o Android 16 ou mais recente. O uso do aplicativo não muda.
+O rodapé passa a ter o link para a política de privacidade, que abre no navegador. O uso do aplicativo não muda.
