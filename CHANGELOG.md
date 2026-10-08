@@ -5,6 +5,7 @@ All material changes to `calculadora-android` are recorded here.
 ## [Unreleased]
 
 - Update the official CodeQL SARIF upload Action to v4.38.3 at its complete release commit SHA (LCV-336).
+- Link the README's mention of CodeQL 2.27.1 to GitHub's official announcement (https://github.blog/changelog/2026-09-25-codeql-2-27-1-adds-c-and-c-query-and-kotlin-2-4-20-support/) and correct the Gradle version it cites to 9.8.0, the wrapper's version since #72 (CALANDR-43).
 
 ## [1.0.5] — 07/10/2026
 
