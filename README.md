@@ -9,7 +9,7 @@ LCV Ideas & Software.
 
 O repositório já contém o projeto Gradle e a esteira de publicação na Play,
 introduzidos em 17/09/2026 pela [CALANDR-8](https://linear.app/lcv-ideas-software/issue/CALANDR-8):
-Gradle 9.7.1 com a distribuição fixada por checksum, Android Gradle Plugin
+Gradle 9.8.0 com a distribuição fixada por checksum, Android Gradle Plugin
 9.4.x, `compileSdk` e `targetSdk` 37 (Android 17), `minSdk` 36 (Android 16,
 decisão do operador de 04/10/2026) e o package name `dev.lcv.calculadora`. Não há assinatura no repositório — o material de
 assinatura é injetado em tempo de build pelo fluxo de publicação.
@@ -83,7 +83,7 @@ para fornecer ao GitHub Code Quality uma linguagem que a análise por regras
 dele cobre. Ele não é carregado pela página, não integra o aplicativo e não
 representa cobertura de Kotlin. O Kotlin é coberto pelo code scanning do
 CodeQL: desde 24/09/2026, o Default setup analisa `java-kotlin`, compilado com
-o *autobuild*, no CodeQL 2.27.1, a primeira versão que suporta o Kotlin 2.4.20
+o *autobuild*, no [CodeQL 2.27.1](https://github.blog/changelog/2026-09-25-codeql-2-27-1-adds-c-and-c-query-and-kotlin-2-4-20-support/), a primeira versão que suporta o Kotlin 2.4.20
 deste projeto. O Code Quality não o cobre: a análise por regras dele suporta
 C#, Go, Java, JavaScript, Python, Ruby e TypeScript, e o modo `none` com que
 ele compila não extrai Kotlin. Por isso o placeholder continua sendo a única
