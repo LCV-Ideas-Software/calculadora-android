@@ -4,6 +4,8 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+- Update the official CodeQL SARIF upload Action to v4.38.3 at its complete release commit SHA (LCV-336).
+
 ## [1.0.5] — 07/10/2026
 
 ### Added
