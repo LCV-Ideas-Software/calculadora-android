@@ -38,6 +38,7 @@ import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -1177,9 +1178,11 @@ class SimulacaoScreenTest {
     fun aQualidadeExcelenteDoBacktestTemOTamanhoEOsRotulosDoWebEAsCoresDecididas() {
         assertQualidadeDoBacktest("5.3800", "🏆 Excelente", texto = Color(0xFF166534), matiz = Color(0xFF16A34A))
         // Os rótulos do painel voltam aos do web (BacktestPanel.tsx), por decisão do operador de 04/10/2026.
-        for (rotulo in listOf("🧪 Backtest (7 dias)", "MAPE 7d", "Erro atual")) {
+        for (rotulo in listOf("🧪 BACKTEST (7 DIAS)", "MAPE 7d", "Erro atual")) {
             compose.onNodeWithText(rotulo, useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         }
+        // O título aparece em maiúsculas, como o `h4` do web, e o TalkBack lê a forma original (CALANDR-44).
+        compose.onNodeWithContentDescription("🧪 Backtest (7 dias)", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test

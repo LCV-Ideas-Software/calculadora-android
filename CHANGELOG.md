@@ -4,6 +4,14 @@ All material changes to `calculadora-android` are recorded here.
 
 ## [Unreleased]
 
+## [1.0.6] — 08/10/2026
+
+### Changed
+
+- Panel titles are uppercase, as the web's `h4` headings are (CALANDR-44): "📋 Parâmetros
+  Vigentes", "📊 Análise de Sensibilidade", "🧪 Backtest (7 dias)" and "🔎 Diagnóstico da
+  fatura". As on the web, where CSS `uppercase` changes only what is shown, TalkBack reads
+  the original text. The operator chose "igual na web" on 08/10/2026.
 - Update the official CodeQL SARIF upload Action to v4.38.3 at its complete release commit SHA (LCV-336).
 - Link the README's mention of CodeQL 2.27.1 to GitHub's official announcement (https://github.blog/changelog/2026-09-25-codeql-2-27-1-adds-c-and-c-query-and-kotlin-2-4-20-support/) and correct the Gradle version it cites to 9.8.0, the wrapper's version since #72 (CALANDR-43).
 

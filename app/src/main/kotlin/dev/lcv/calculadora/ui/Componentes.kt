@@ -29,6 +29,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -36,6 +38,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import java.util.Locale
 
 /**
  * Os átomos visuais do produto web, traduzidos para componentes nativos: o
@@ -228,11 +231,17 @@ fun Linha(
     }
 }
 
-/** Título curto e maiúsculo dos painéis de informação do web. */
+/**
+ * Título curto e maiúsculo dos painéis de informação do web. O web põe o `h4` em maiúsculas só
+ * na tela (`uppercase` do CSS), e o leitor de tela recebe o texto original; aqui também: o texto
+ * aparece em maiúsculas e o TalkBack lê a forma original (decisão do operador de 08/10/2026,
+ * CALANDR-44).
+ */
 @Composable
 fun TituloPainel(texto: String, cor: Color) {
     Text(
-        text = texto,
+        text = texto.uppercase(Locale.forLanguageTag("pt-BR")),
+        modifier = Modifier.semantics { contentDescription = texto },
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.8.sp,

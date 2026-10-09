@@ -1,1 +1,1 @@
-O rodapé passa a ter o link para a política de privacidade, que abre no navegador. O uso do aplicativo não muda.
+Os títulos dos painéis passam a aparecer em maiúsculas, como no site. O uso do aplicativo não muda.

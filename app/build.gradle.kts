@@ -24,10 +24,10 @@ android {
         // `java.time` do motor segue nativo, sem core library desugaring.
         minSdk = 36
         targetSdk = 37
-        // 1.0.4/code 6 publicado na trilha production (05/10/2026); a 1.0.5 leva o link da política de
-        // privacidade no rodapé (CALANDR-42).
-        versionCode = 7
-        versionName = "1.0.5"
+        // 1.0.5/code 7 publicado na trilha production (07/10/2026); a 1.0.6 põe os títulos dos painéis
+        // em maiúsculas, como no web (CALANDR-44).
+        versionCode = 8
+        versionName = "1.0.6"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
